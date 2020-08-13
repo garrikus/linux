@@ -32,6 +32,20 @@
 	pinctrl-use-default; /* X-Loader has muxed the pins. Let them be. */
 };
 
+&gpio2 {
+	rs232_forced_on {
+		gpio-hog;
+		gpios = <(38-32) GPIO_ACTIVE_HIGH>;	/* gpio_38 (address in gpio2) */
+		output-high;
+	};
+
+	rs232_forced_off {
+		gpio-hog;
+		gpios = <(39-32) GPIO_ACTIVE_HIGH>;	/* gpio_39 (address in gpio2) */
+		output-high;
+	};
+};
+
 &i2c1 {
 	clock-frequency = <2600000>;
 
