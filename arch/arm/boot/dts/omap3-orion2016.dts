@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (C) 2011 Texas Instruments Incorporated - http://www.ti.com/
+ */
+/dts-v1/;
+
+#include "omap36xx.dtsi"
+/* #include "omap3-evm-common.dtsi" */
+/* #include "omap3-evm-processor-common.dtsi" */
+
+/ {
+	model = "Navis Orion (2016 m.y.)";
+	compatible = "navis,omap3-orion2016", "ti,omap3630", "ti,omap3";
+
+	cpus {
+		cpu@0 {
+			cpu0-supply = <&vcc>;
+		};
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x10000000>; /* 256 MB */
+	};
+
+	chosen {
+		stdout-path = &uart3;
+	};
+};
+
+&omap3_pmx_core {
+	pinctrl-use-default; /* X-Loader has muxed the pins. Let them be. */
+};
+
+&i2c1 {
+	clock-frequency = <2600000>;
+
+	twl: twl@48 {
+		reg = <0x48>;
+		interrupts = <7>; /* SYS_NIRQ cascaded to intc */
+		interrupt-parent = <&intc>;
+	};
+};
+
+#include "twl4030.dtsi"
+/* #include "twl4030_omap3.dtsi" */
+
