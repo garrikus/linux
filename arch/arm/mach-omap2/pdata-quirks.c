@@ -578,7 +578,6 @@ static void pdata_quirks_check(struct pdata_init *quirks)
 	}
 }
 
-int omap_pqi_flag = 0;
 void __init pdata_quirks_init(const struct of_device_id *omap_dt_match_table)
 {
 	/*
@@ -592,9 +591,7 @@ void __init pdata_quirks_init(const struct of_device_id *omap_dt_match_table)
 	if (of_machine_is_compatible("ti,omap3"))
 		omap3_mcbsp_init();
 	pdata_quirks_check(auxdata_quirks);
-	omap_pqi_flag = 1;
 	of_platform_populate(NULL, omap_dt_match_table,
 			     omap_auxdata_lookup, NULL);
-	omap_pqi_flag = 0;
 	pdata_quirks_check(pdata_quirks);
 }

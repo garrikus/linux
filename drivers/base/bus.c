@@ -479,8 +479,6 @@ out_put:
  *
  * - Automatically probe for a driver if the bus allows it.
  */
-#include <linux/of.h>
-extern int omap_pqi_flag;
 void bus_probe_device(struct device *dev)
 {
 	struct bus_type *bus = dev->bus;
@@ -488,11 +486,6 @@ void bus_probe_device(struct device *dev)
 
 	if (!bus)
 		return;
-
-	if (omap_pqi_flag){
-		pr_info("drv='%s', of: name='%s', fullname='%s'\n",
-				dev->init_name, dev->of_node->name, dev->of_node->full_name);
-	}
 
 	if (bus->p->drivers_autoprobe)
 		device_initial_probe(dev);

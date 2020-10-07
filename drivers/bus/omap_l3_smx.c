@@ -154,14 +154,6 @@ static irqreturn_t omap3_l3_block_irq(struct omap3_l3 *l3,
 	return IRQ_HANDLED;
 }
 
-void the_status_trapper(u64 status)
-{
-	volatile u64 value = status;
-	for(;;){
-		value = status;
-	}
-}
-
 static irqreturn_t omap3_l3_app_irq(int irq, void *_l3)
 {
 	struct omap3_l3 *l3 = _l3;
@@ -182,8 +174,6 @@ static irqreturn_t omap3_l3_app_irq(int irq, void *_l3)
 		 * of such errors and handle the others. timeout error
 		 * is severe and not expected to occur.
 		 */
-		if (status & L3_STATUS_0_TIMEOUT_MASK)
-			the_status_trapper(status);
 		BUG_ON(status & L3_STATUS_0_TIMEOUT_MASK);
 	} else {
 		status = omap3_l3_readll(l3->rt, L3_SI_FLAG_STATUS_1);
