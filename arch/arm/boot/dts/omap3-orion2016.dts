@@ -120,7 +120,7 @@
 	};
 
 	lcd0: display {
-		compatible = "tpo,taal", "panel-dsi-cm";
+		compatible = "aviv-dsi";
 		label = "lcd0";
 
 		/*
