@@ -7,4 +7,9 @@ config DRM_OMAP_PANEL_DSI_CM
 	help
 	  Driver for generic DSI command mode panels.
 
+config DRM_OMAP_PANEL_DSI_AVIV
+	tristate "A custom LCD panel (video mode) for Orion2016"
+	help
+	  Driver for custom DSI video mode panel
+
 endmenu
