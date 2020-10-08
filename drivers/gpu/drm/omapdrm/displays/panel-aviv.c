@@ -170,6 +170,13 @@ static int dsicm_dcs_write_1(struct panel_drv_data *ddata, u8 dcs_cmd, u8 param)
 	return src->ops->dsi.dcs_write(src, ddata->channel, buf, 2);
 }
 
+static int dsicm_dcs_write_data(struct panel_drv_data *ddata, u8 *data, u32 len)
+{
+	struct omap_dss_device *src = ddata->src;
+
+	return src->ops->dsi.dcs_write(src, ddata->channel, data, len);
+}
+
 static int dsicm_sleep_in(struct panel_drv_data *ddata)
 
 {
@@ -590,19 +597,350 @@ static void dsicm_hw_reset(struct panel_drv_data *ddata)
 	usleep_range(5000, 10000);
 }
 
+
+/************************ NEW LCD *******************************/
+
+static unsigned char cmd_cmd2bkxsel_0x13[] = {
+	0xFF, 0x77, 0x01, 0x00,
+	0x00, 0x13
+	/* FIXME: 0x13 is not something suggested by ST7701S TRM */
+};
+static unsigned char cmd_unknown_ef_bk3[] = {
+	0xEF, 0x08
+};
+static unsigned char cmd_cmd2bkxsel_0x10[] = {
+	0xFF, 0x77, 0x01, 0x00,
+	0x00, 0x10
+};
+
+static unsigned char cmd_lneset[] = {
+	0xC0, 0x63, 0x00
+};
+
+static unsigned char cmd_porctrl[] = {
+	0xC1, 0x10, 0x06
+};
+
+static unsigned char cmd_invset[] = {
+	0xC2, 0x01, 0x02
+};
+
+static unsigned char cmd_unknown_cc[] = {
+	0xCC, 0x10
+};
+
+static unsigned char cmd_pvgamctrl[] = {
+	0xB0, 0xC0, 0x0C, 0x92,
+	0x0C, 0x10, 0x05, 0x02,
+	0x0D, 0x07, 0x21, 0x04,
+	0x53, 0x11, 0x6A, 0x32,
+	0x1F
+};
+
+static unsigned char cmd_nvgamctrl[] = {
+	0xB1, 0xC0, 0x87, 0xCF,
+	0x0C, 0x10, 0x06, 0x00,
+	0x03, 0x08, 0x1D, 0x06,
+	0x54, 0x12, 0xE6, 0xEC,
+	0x0F
+};
+
+static unsigned char cmd_cmd2bkxsel_0x11[] = {
+	0xFF, 0x77, 0x01, 0x00,
+	0x00, 0x11
+};
+
+static unsigned char cmd_vrhs[] = {
+	0xB0, 0x5D
+};
+
+static unsigned char cmd_vcoms[] = {
+	0xB1, 0x52
+};
+
+static unsigned char cmd_vghss[] = {
+	0xB2, 0x87
+};
+
+static unsigned char cmd_testcmd[] = {
+	0xB3, 0x80
+};
+
+static unsigned char cmd_vgls[] = {
+	0xB5, 0x4E
+};
+
+static unsigned char cmd_pwctrl1[] = {
+	0xB7, 0x85
+};
+
+static unsigned char cmd_pwctrl2[] = {
+	0xB8, 0x20
+};
+
+//SPI_WriteComm(0xC0);    // 
+//SPI_WriteData(0x09);   //
+
+static unsigned char cmd_spd1[] = {
+	0xC1, 0x78
+};
+
+static unsigned char cmd_spd2[] = {
+	0xC2, 0x78
+};
+
+static unsigned char cmd_mipiset1[] = {
+	0xD0, 0x88
+};
+
+static unsigned char cmd_unknown_ee[] = {
+	0xEE, 0x42
+};
+
+//Delay(100);                
+
+static unsigned char cmd_unknown_e0[] = {
+	0xE0, 0x00, 0x00, 0x02
+};
+
+static unsigned char cmd_unknown_e1[] = {
+	0xE1, 0x04, 0xA0, 0x06,
+	0xA0, 0x05, 0xA0, 0x07,
+	0xA0, 0x00, 0x44, 0x44
+};
+
+static unsigned char cmd_unknown_e2[] = {
+	0xE2, 0x00, 0x00, 0x33,
+	0x33, 0x01, 0xA0, 0x00,
+	0x00, 0x01, 0xA0, 0x00,
+	0x00
+};
+
+static unsigned char cmd_unknown_e3[] = {
+	0xE3, 0x00, 0x00, 0x33,
+	0x33
+};
+
+static unsigned char cmd_unknown_e4[] = {
+	0xE4, 0x44, 0x44
+};
+
+static unsigned char cmd_unknown_e5[] = {
+	0xE5, 0x0C, 0x30, 0xA0,
+	0xA0, 0x0E, 0x32, 0xA0,
+	0xA0, 0x08, 0x2C, 0xA0,
+	0xA0, 0x0A, 0x2E, 0xA0,
+	0xA0
+};
+
+static unsigned char cmd_unknown_e6[] = {
+	0xE6, 0x00, 0x00, 0x33,
+	0x33
+};
+
+static unsigned char cmd_unknown_e7[] = {
+	0xE7, 0x44, 0x44
+};
+
+static unsigned char cmd_unknown_e8[] = {
+	0xE8, 0x0D, 0x31, 0xA0,
+	0xA0, 0x0F, 0x33, 0xA0,
+	0xA0, 0x09, 0x2D, 0xA0,
+	0xA0, 0x0B, 0x2F, 0xA0,
+	0xA0
+};
+
+static unsigned char cmd_unknown_eb[] = {
+	0xEB, 0x00, 0x00, 0xE4,
+	0xE4, 0x44, 0x88, 0x00
+};
+
+static unsigned char cmd_unknown_ed[] = {
+	0xED, 0xFF, 0xF5, 0x47,
+	0x6F, 0x0B, 0xA1, 0xA2,
+	0xBF, 0xFB, 0x2A, 0x1A,
+	0xB0, 0xF6, 0x74, 0x5F,
+	0xFF
+};
+
+static unsigned char cmd_unknown_ef_bk1[] = {
+	0xEF, 0x08, 0x08, 0x08,
+	0x45, 0x3F, 0x54
+};
+
+static unsigned char cmd_cmd2bkxsel_0x00[] = {
+	0xFF, 0x77, 0x01, 0x00,
+	0x00, 0x00
+};
+
+static unsigned char cmd_madctl[] = {
+	0x36, 0x00
+};
+
+
+/* Sleep out
+   SPI_WriteComm(0x11);
+   Delay(120);
+ */
+
+/* Disp On
+   SPI_WriteComm(0x29);
+   Delay(120);
+ */
+
+
+#define TAAL_DSI_WR(x) (dsicm_dcs_write_data(ddata, (x), sizeof (x)))
+static int power_on_panel_init(struct panel_drv_data *ddata)
+{
+	int r;
+
+	/* B9 is not SETEXTC, but DGMLUTR
+	r = dsi_vc_dcs_write(TCH, extend_cmd_enable, sizeof(extend_cmd_enable));
+	if (r)
+		goto err;
+	 */
+	/********* Cmd2BK3 set **************/
+	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x13);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_ef_bk3);
+	if (r)
+		goto err;
+
+	/********* Cmd2BK0 set **************/
+	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x10);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_lneset);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_porctrl);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_invset);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_cc);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_pvgamctrl);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_nvgamctrl);
+	if (r)
+		goto err;
+
+	/********* Cmd2BK1 set **************/
+	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x11);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_vrhs);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_vcoms);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_vghss);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_testcmd);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_vgls);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_pwctrl1);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_pwctrl2);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_spd1);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_spd2);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_mipiset1);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_ee);
+	if (r)
+		goto err;
+
+	msleep(100);
+
+	r = TAAL_DSI_WR(cmd_unknown_e0);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_e1);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_e2);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_e3);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_e4);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_e5);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_e6);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_e7);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_e8);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_eb);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_ed);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_unknown_ef_bk1);
+	if (r)
+		goto err;
+
+
+	/********* Cmd2-NOBK **************/
+	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x00);
+	if (r)
+		goto err;
+	r = TAAL_DSI_WR(cmd_madctl);
+	if (r)
+		goto err;
+
+
+	return 0;
+
+err:
+	return r;
+}
+
+#define DCS_NORON               0x13
+#define DCS_ALLPOFF		0x22
+#define DCS_ALLPON		0x23
+
 static int dsicm_power_on(struct panel_drv_data *ddata)
 {
 	struct omap_dss_device *src = ddata->src;
 	u8 id1, id2, id3;
 	int r;
 	struct omap_dss_dsi_config dsi_config = {
-		.mode = OMAP_DSS_DSI_CMD_MODE,
+		.mode = OMAP_DSS_DSI_VIDEO_MODE,
 		.pixel_format = OMAP_DSS_DSI_FMT_RGB888,
 		.vm = &ddata->vm,
 		.hs_clk_min = 150000000,
 		.hs_clk_max = 300000000,
 		.lp_clk_min = 7000000,
 		.lp_clk_max = 10000000,
+		.trans_mode = OMAP_DSS_DSI_EVENT_MODE,
 	};
 
 	if (ddata->vpnl) {
@@ -644,6 +982,9 @@ static int dsicm_power_on(struct panel_drv_data *ddata)
 
 	src->ops->dsi.enable_hs(src, ddata->channel, false);
 
+	/* Send init sequence */
+	power_on_panel_init(ddata);
+
 	r = dsicm_sleep_out(ddata);
 	if (r)
 		goto err;
@@ -652,21 +993,12 @@ static int dsicm_power_on(struct panel_drv_data *ddata)
 	if (r)
 		goto err;
 
-	r = dsicm_dcs_write_1(ddata, DCS_BRIGHTNESS, 0xff);
-	if (r)
-		goto err;
-
-	r = dsicm_dcs_write_1(ddata, DCS_CTRL_DISPLAY,
-			(1<<2) | (1<<5));	/* BL | BCTRL */
-	if (r)
-		goto err;
-
-	r = dsicm_dcs_write_1(ddata, MIPI_DCS_SET_PIXEL_FORMAT,
-		MIPI_DCS_PIXEL_FMT_24BIT);
-	if (r)
-		goto err;
 
 	r = dsicm_dcs_write_0(ddata, MIPI_DCS_SET_DISPLAY_ON);
+	if (r)
+		goto err;
+
+	r = dsicm_dcs_write_0(ddata, DCS_ALLPON);
 	if (r)
 		goto err;
 
@@ -793,7 +1125,7 @@ static void dsicm_enable(struct omap_dss_device *dssdev)
 
 	mutex_unlock(&ddata->lock);
 
-	dsicm_bl_power(ddata, true);
+	/*dsicm_bl_power(ddata, true);*/
 
 	return;
 err:
@@ -1188,7 +1520,7 @@ static int dsicm_probe_of(struct platform_device *pdev)
 		videomode_from_timing(&timing, &ddata->vm);
 		if (!ddata->vm.pixelclock)
 			ddata->vm.pixelclock =
-				ddata->vm.hactive * ddata->vm.vactive * 60;
+				ddata->vm.hactive * ddata->vm.vactive * 30;
 	} else {
 		dev_warn(&pdev->dev,
 			 "failed to get video timing, using defaults\n");
@@ -1250,9 +1582,9 @@ static int dsicm_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, ddata);
 	ddata->pdev = pdev;
 
-	ddata->vm.hactive = 864;
-	ddata->vm.vactive = 480;
-	ddata->vm.pixelclock = 864 * 480 * 60;
+	ddata->vm.hactive = 480;
+	ddata->vm.vactive = 800;
+	ddata->vm.pixelclock = 480*800*30;
 
 	r = dsicm_probe_of(pdev);
 	if (r)
@@ -1268,8 +1600,7 @@ static int dsicm_probe(struct platform_device *pdev)
 	dssdev->of_port = 0;
 	dssdev->ops_flags = OMAP_DSS_DEVICE_OP_MODES;
 
-	dssdev->caps = OMAP_DSS_DISPLAY_CAP_MANUAL_UPDATE |
-		OMAP_DSS_DISPLAY_CAP_TEAR_ELIM;
+	dssdev->caps = 0;
 
 	omapdss_display_init(dssdev);
 	omapdss_device_register(dssdev);
