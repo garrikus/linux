@@ -4048,6 +4048,7 @@ static int dsi_configure_dsi_clocks(struct dsi_data *dsi)
 
 	cinfo = dsi->user_dsi_cinfo;
 
+	DSSDBG("%s: cinfo.m = %u\n", __func__, cinfo.m);
 	r = dss_pll_set_config(&dsi->pll, &cinfo);
 	if (r) {
 		DSSERR("Failed to set dsi clocks\n");
@@ -4638,6 +4639,8 @@ static bool dsi_vm_calc_pll_cb(int n, int m, unsigned long fint,
 	ctx->dsi_cinfo.m = m;
 	ctx->dsi_cinfo.fint = fint;
 	ctx->dsi_cinfo.clkdco = clkdco;
+	DSSDBG("%s: n = %u, m = %u, fint = %lu, clkdco = %lu\n", __func__,
+		       n, m, fint, clkdco);
 
 	return dss_pll_hsdiv_calc_a(ctx->pll, clkdco, ctx->req_pck_min,
 			dsi->data->max_fck_freq,
@@ -4681,6 +4684,8 @@ static bool dsi_vm_calc(struct dsi_data *dsi,
 		pll_max = byteclk_max * 4 * 4;
 	}
 
+	DSSDBG("%s: ndl - 1 = %d, clkin = %lu, pll_min = %lu, pll_max = %lu\n", __func__,
+			ndl, clkin, pll_min, pll_max);
 	return dss_pll_calc_a(ctx->pll, clkin,
 			pll_min, pll_max,
 			dsi_vm_calc_pll_cb, ctx);
@@ -4719,6 +4724,7 @@ static int dsi_set_config(struct omap_dss_device *dssdev,
 		goto err;
 	}
 
+	DSSDBG("%s: ctx.dsi_cinfo.m = %u\n", __func__, ctx.dsi_cinfo.m);
 	dsi->user_dsi_cinfo = ctx.dsi_cinfo;
 	dsi->user_dispc_cinfo = ctx.dispc_cinfo;
 
