@@ -387,6 +387,33 @@ static bool pll_is_locked(u32 stat)
 	return ((stat & 0x6f) == 0x3);
 }
 
+static void print_dss_pll_clock_info(struct dss_pll_clock_info *cinfo)
+{
+	DSSDBG("cinfo@0x%p: fint = %lu, clkdco = %lu, clkout=[%lu, %lu, %lu, %lu]\n", cinfo,
+			cinfo->fint, cinfo->clkdco,
+			cinfo->clkout[0], cinfo->clkout[1], cinfo->clkout[2], cinfo->clkout[3]);
+	DSSDBG("\t n = %u, m = %u, mf = %u, mX=[%u, %u, %u, %u], sd = %u\n",
+			cinfo->n, cinfo->m, cinfo->mf,
+			cinfo->mX[0], cinfo->mX[1], cinfo->mX[2], cinfo->mX[3],
+			cinfo->sd);
+}
+
+static void print_dss_pll_hw(struct dss_pll_hw *hw)
+{
+	DSSDBG("hw@0x%p: stopmode = %u, freqsel = %u, selfreqdco = %u, refsel = %u\n", hw,
+			hw->has_stopmode, hw->has_freqsel, hw->has_selfreqdco, hw->has_refsel);
+	DSSDBG("\tn = (%03u/%03u), m = (%03u/%03u)\n",
+			hw->n_msb, hw->n_lsb,
+			hw->m_msb, hw->m_lsb
+			);
+	DSSDBG("\tmX[(msb,lsb)] = [(%03u/%03u),(%03u/%03u),(%03u/%03u),(%03u/%03u)]\n",
+			hw->mX_msb[0], hw->mX_lsb[0],
+			hw->mX_msb[1], hw->mX_lsb[1],
+			hw->mX_msb[2], hw->mX_lsb[2],
+			hw->mX_msb[3], hw->mX_lsb[3]
+			);
+}
+
 int dss_pll_write_config_type_a(struct dss_pll *pll,
 		const struct dss_pll_clock_info *cinfo)
 {
@@ -394,6 +421,9 @@ int dss_pll_write_config_type_a(struct dss_pll *pll,
 	void __iomem *base = pll->base;
 	int r = 0;
 	u32 l;
+
+	print_dss_pll_clock_info(cinfo);
+	print_dss_pll_hw(hw);
 
 	l = 0;
 	if (hw->has_stopmode)
