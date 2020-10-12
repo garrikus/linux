@@ -941,6 +941,7 @@ static int dsicm_power_on(struct panel_drv_data *ddata)
 		.lp_clk_min = 7000000,
 		.lp_clk_max = 10000000,
 		.trans_mode = OMAP_DSS_DSI_EVENT_MODE,
+		.ddr_clk_always_on = true,
 	};
 
 	if (ddata->vpnl) {
