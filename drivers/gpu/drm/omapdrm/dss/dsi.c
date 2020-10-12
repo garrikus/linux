@@ -4639,8 +4639,6 @@ static bool dsi_vm_calc_pll_cb(int n, int m, unsigned long fint,
 	ctx->dsi_cinfo.m = m;
 	ctx->dsi_cinfo.fint = fint;
 	ctx->dsi_cinfo.clkdco = clkdco;
-	DSSDBG("%s: n = %u, m = %u, fint = %lu, clkdco = %lu\n", __func__,
-		       n, m, fint, clkdco);
 
 	return dss_pll_hsdiv_calc_a(ctx->pll, clkdco, ctx->req_pck_min,
 			dsi->data->max_fck_freq,
