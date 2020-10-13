@@ -1003,6 +1003,14 @@ static int dsicm_power_on(struct panel_drv_data *ddata)
 	if (r)
 		goto err;
 
+	r = dsicm_dcs_write_0(ddata, DCS_ALLPOFF);
+	if (r)
+		goto err;
+
+	r = dsicm_dcs_write_0(ddata, DCS_NORON);
+	if (r)
+		goto err;
+
 	r = _dsicm_enable_te(ddata, ddata->te_enabled);
 	if (r)
 		goto err;
