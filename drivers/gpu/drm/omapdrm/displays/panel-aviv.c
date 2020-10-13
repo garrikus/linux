@@ -1529,7 +1529,7 @@ static int dsicm_probe_of(struct platform_device *pdev)
 		videomode_from_timing(&timing, &ddata->vm);
 		if (!ddata->vm.pixelclock)
 			ddata->vm.pixelclock =
-				ddata->vm.hactive * ddata->vm.vactive * 30;
+				ddata->vm.hactive * ddata->vm.vactive * 60;
 	} else {
 		dev_warn(&pdev->dev,
 			 "failed to get video timing, using defaults\n");
@@ -1593,7 +1593,7 @@ static int dsicm_probe(struct platform_device *pdev)
 
 	ddata->vm.hactive = 480;
 	ddata->vm.vactive = 800;
-	ddata->vm.pixelclock = 480*800*30;
+	ddata->vm.pixelclock = 480 * 800 * 60;
 
 	r = dsicm_probe_of(pdev);
 	if (r)
