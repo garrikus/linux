@@ -4665,9 +4665,9 @@ static bool dsi_vm_calc(struct dsi_data *dsi,
 	ctx->config = cfg;
 
 	/* these limits should come from the panel driver */
-	ctx->req_pck_min = vm->pixelclock - 1000;
+	ctx->req_pck_min = vm->pixelclock - 500000;
 	ctx->req_pck_nom = vm->pixelclock;
-	ctx->req_pck_max = vm->pixelclock + 1000;
+	ctx->req_pck_max = vm->pixelclock + 500000;
 
 	byteclk_min = div64_u64((u64)ctx->req_pck_min * bitspp, ndl * 8);
 	pll_min = max(cfg->hs_clk_min * 4, byteclk_min * 4 * 4);
