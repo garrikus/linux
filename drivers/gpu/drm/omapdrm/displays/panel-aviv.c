@@ -659,7 +659,7 @@ static unsigned char cmd_vcoms[] = {
 };
 
 static unsigned char cmd_vghss[] = {
-	0xB2, 0x87
+	0xB2, 0x82
 };
 
 static unsigned char cmd_testcmd[] = {
@@ -667,7 +667,7 @@ static unsigned char cmd_testcmd[] = {
 };
 
 static unsigned char cmd_vgls[] = {
-	0xB5, 0x4E
+	0xB5, 0x42
 };
 
 static unsigned char cmd_pwctrl1[] = {
@@ -678,8 +678,12 @@ static unsigned char cmd_pwctrl2[] = {
 	0xB8, 0x20
 };
 
-//SPI_WriteComm(0xC0);    // 
+//SPI_WriteComm(0xC0);    //
 //SPI_WriteData(0x09);   //
+
+static unsigned char cmd_spd0[] = {
+	0xC0, 0x09
+};
 
 static unsigned char cmd_spd1[] = {
 	0xC1, 0x78
@@ -751,7 +755,7 @@ static unsigned char cmd_unknown_e8[] = {
 };
 
 static unsigned char cmd_unknown_eb[] = {
-	0xEB, 0x00, 0x00, 0xE4,
+	0xEB, 0x00, 0x01, 0xE4,
 	0xE4, 0x44, 0x88, 0x00
 };
 
@@ -765,7 +769,7 @@ static unsigned char cmd_unknown_ed[] = {
 
 static unsigned char cmd_unknown_ef_bk1[] = {
 	0xEF, 0x08, 0x08, 0x08,
-	0x45, 0x3F, 0x54
+	0x40, 0x3F, 0x64
 };
 
 static unsigned char cmd_cmd2bkxsel_0x00[] = {
@@ -775,6 +779,26 @@ static unsigned char cmd_cmd2bkxsel_0x00[] = {
 
 static unsigned char cmd_madctl[] = {
 	0x36, 0x00
+};
+
+static unsigned char cmd_add_0[] = {
+	0xE8, 0x00, 0x0E
+};
+
+static unsigned char cmd_add_1[] = {
+	0x11
+};
+
+static unsigned char cmd_add_2[] = {
+	0xE8, 0x00, 0x00
+};
+
+static unsigned char cmd_add_3[] = {
+	0x3A, 0x77
+};
+
+static unsigned char cmd_add_4[] = {
+	0x29
 };
 
 
@@ -794,11 +818,6 @@ static int power_on_panel_init(struct panel_drv_data *ddata)
 {
 	int r;
 
-	/* B9 is not SETEXTC, but DGMLUTR
-	r = dsi_vc_dcs_write(TCH, extend_cmd_enable, sizeof(extend_cmd_enable));
-	if (r)
-		goto err;
-	 */
 	/********* Cmd2BK3 set **************/
 	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x13);
 	if (r)
@@ -855,6 +874,9 @@ static int power_on_panel_init(struct panel_drv_data *ddata)
 	r = TAAL_DSI_WR(cmd_pwctrl2);
 	if (r)
 		goto err;
+	r = TAAL_DSI_WR(cmd_spd0);
+	if (r)
+		goto err;
 	r = TAAL_DSI_WR(cmd_spd1);
 	if (r)
 		goto err;
@@ -907,14 +929,47 @@ static int power_on_panel_init(struct panel_drv_data *ddata)
 	if (r)
 		goto err;
 
+	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x13);
+	if (r)
+		goto err;
+
+	r = TAAL_DSI_WR(cmd_add_0);
+	if (r)
+		goto err;
+
 
 	/********* Cmd2-NOBK **************/
 	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x00);
 	if (r)
 		goto err;
-	r = TAAL_DSI_WR(cmd_madctl);
+
+	r = TAAL_DSI_WR(cmd_add_1);
 	if (r)
 		goto err;
+
+	msleep(200);
+
+	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x13);
+	if (r)
+		goto err;
+
+	r = TAAL_DSI_WR(cmd_add_2);
+	if (r)
+		goto err;
+
+	r = TAAL_DSI_WR(cmd_cmd2bkxsel_0x00);
+	if (r)
+		goto err;
+
+	r = TAAL_DSI_WR(cmd_add_3);
+	if (r)
+		goto err;
+
+	r = TAAL_DSI_WR(cmd_add_4);
+	if (r)
+		goto err;
+
+	msleep(50);
 
 
 	return 0;
