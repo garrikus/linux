@@ -229,6 +229,9 @@ bool dss_pll_calc_a(const struct dss_pll *pll, unsigned long clkin,
 
 	pll_max = pll_max ? pll_max : ULONG_MAX;
 
+	DSSDBG("%s: n_start = %d, n_stop = %d\n", __func__, n_start, n_stop);
+	DSSDBG("\tpll_min = %lu, pll_max = %lu\n\n", pll_min, pll_max);
+
 	for (n = n_start; n != n_stop; n += n_inc) {
 		fint = clkin / n;
 
@@ -238,6 +241,7 @@ bool dss_pll_calc_a(const struct dss_pll *pll, unsigned long clkin,
 				(unsigned)(pll_hw_max / fint / 2),
 				hw->m_max);
 		m_inc = 1;
+		DSSDBG("\tn = %d, fint = %lu, m_start = %d, m_stop = %d\n", n, fint, m_start, m_stop);
 
 		if (hw->errata_i886) {
 			swap(m_start, m_stop);
@@ -392,7 +396,7 @@ static void print_dss_pll_clock_info(struct dss_pll_clock_info *cinfo)
 	DSSDBG("cinfo@0x%p: fint = %lu, clkdco = %lu, clkout=[%lu, %lu, %lu, %lu]\n", cinfo,
 			cinfo->fint, cinfo->clkdco,
 			cinfo->clkout[0], cinfo->clkout[1], cinfo->clkout[2], cinfo->clkout[3]);
-	DSSDBG("\t n = %u, m = %u, mf = %u, mX=[%u, %u, %u, %u], sd = %u\n",
+	DSSDBG("\t n = %hu, m = %hu, mf = %u, mX=[%hu, %hu, %hu, %hu], sd = %u\n",
 			cinfo->n, cinfo->m, cinfo->mf,
 			cinfo->mX[0], cinfo->mX[1], cinfo->mX[2], cinfo->mX[3],
 			cinfo->sd);

@@ -1654,6 +1654,8 @@ static int dsicm_probe(struct platform_device *pdev)
 	if (r)
 		return r;
 
+	dev_info(dev, "probed pixelclock = %lu\n", ddata->vm.pixelclock);
+
 	dssdev = &ddata->dssdev;
 	dssdev->dev = dev;
 	dssdev->ops = &dsicm_ops;

@@ -5,6 +5,7 @@
  */
 
 #define DSS_SUBSYS_NAME "DSI"
+#define PRINT_VERBOSE_VM_TIMINGS  11
 
 #include <linux/kernel.h>
 #include <linux/mfd/syscon.h>
@@ -4242,6 +4243,34 @@ static void print_dsi_vm(const char *str,
 #undef TO_DSI_T
 }
 
+static void print_dispc_vm_raw(const char *str, const struct videomode *vm)
+{
+	unsigned long pck = vm->pixelclock;
+	int hact, bl, tot;
+
+	hact = vm->hactive;
+	bl = vm->hsync_len + vm->hback_porch + vm->hfront_porch;
+	tot = hact + bl;
+
+#define TO_DISPC_T(x) (x)
+
+	pr_debug("%s pck %lu, HOR:%u/%u/%u/%u = %u+%u = %u, "
+			"VERT:%u/%u/%u/%u = %u + %u = %u flags=0x%08x\n",
+			str,
+			pck,
+			vm->hsync_len, vm->hback_porch, hact, vm->hfront_porch,
+			bl, hact, tot,
+			TO_DISPC_T(vm->vsync_len),
+			TO_DISPC_T(vm->vback_porch),
+			TO_DISPC_T(vm->vactive),
+			TO_DISPC_T(vm->vfront_porch),
+			TO_DISPC_T(vm->vsync_len + vm->vback_porch + vm->vfront_porch),
+			TO_DISPC_T(vm->vactive),
+			TO_DISPC_T(vm->vsync_len + vm->vback_porch + vm->vfront_porch + vm->vactive),
+			vm->flags);
+#undef TO_DISPC_T
+}
+
 static void print_dispc_vm(const char *str, const struct videomode *vm)
 {
 	unsigned long pck = vm->pixelclock;
@@ -4539,22 +4568,29 @@ static bool dsi_vm_calc_blanking(struct dsi_clk_calc_ctx *ctx)
 
 	/* setup DISPC videomode */
 
+	DSSDBG("%s: DISPC_VIDEO_MODE trans_mode=%d dispc_pck = %lu\n", __func__, cfg->trans_mode, dispc_pck);
+	int hfp_calc, hsa_calc, hbp_calc;
+
 	dispc_vm = &ctx->vm;
 	*dispc_vm = *req_vm;
+	print_dispc_vm_raw("DISPC timings REQ:", dispc_vm);
 	dispc_vm->pixelclock = dispc_pck;
 
 	if (cfg->trans_mode == OMAP_DSS_DSI_PULSE_MODE) {
 		hsa = div64_u64((u64)req_vm->hsync_len * dispc_pck,
 				req_pck_nom);
+		hsa_calc = hsa;
 		hsa = max(hsa, 1);
 	} else {
 		hsa = 1;
 	}
 
 	hbp = div64_u64((u64)req_vm->hback_porch * dispc_pck, req_pck_nom);
+	hbp_calc = hbp;
 	hbp = max(hbp, 1);
 
 	hfp = dispc_hbl - hsa - hbp;
+	hfp_calc = hfp;
 	if (hfp < 1) {
 		int t;
 		/* we need to take cycles from hbp */
@@ -4574,9 +4610,13 @@ static bool dsi_vm_calc_blanking(struct dsi_clk_calc_ctx *ctx)
 	if (hfp < 1)
 		return false;
 
+	DSSDBG("\tCalculated: hsa = %d; hbp = %d, hfp = %d\n", hsa_calc, hbp_calc, hfp_calc);
+	DSSDBG("\tAdjusted  : hsa = %d; hbp = %d, hfp = %d\n", hsa, hbp, hfp);
+
 	dispc_vm->hfront_porch = hfp;
 	dispc_vm->hsync_len = hsa;
 	dispc_vm->hback_porch = hbp;
+	print_dispc_vm_raw("DISPC timings CALC:", dispc_vm);
 
 	return true;
 }
@@ -4682,6 +4722,7 @@ static bool dsi_vm_calc(struct dsi_data *dsi,
 		pll_max = byteclk_max * 4 * 4;
 	}
 
+	print_dispc_vm_raw("dsi_vm_calc():", vm);
 	DSSDBG("%s: ndl - 1 = %d, clkin = %lu, pll_min = %lu, pll_max = %lu\n", __func__,
 			ndl, clkin, pll_min, pll_max);
 	return dss_pll_calc_a(ctx->pll, clkin,
