@@ -38,6 +38,8 @@
 #define DCS_GET_ID2		0xdb
 #define DCS_GET_ID3		0xdc
 
+#define MY_PCLOCK 24000000
+
 struct panel_drv_data {
 	struct omap_dss_device dssdev;
 	struct omap_dss_device *src;
@@ -995,7 +997,7 @@ static int dsicm_power_on(struct panel_drv_data *ddata)
 		.hs_clk_max = 300000000,
 		.lp_clk_min = 5000000,
 		.lp_clk_max = 10000000,
-		.trans_mode = OMAP_DSS_DSI_EVENT_MODE,
+		.trans_mode = OMAP_DSS_DSI_PULSE_MODE,
 		.ddr_clk_always_on = true,
 	};
 
@@ -1584,7 +1586,7 @@ static int dsicm_probe_of(struct platform_device *pdev)
 		videomode_from_timing(&timing, &ddata->vm);
 		if (!ddata->vm.pixelclock)
 			ddata->vm.pixelclock =
-				ddata->vm.hactive * ddata->vm.vactive * 60;
+				MY_PCLOCK/*ddata->vm.hactive * ddata->vm.vactive * 60*/;
 	} else {
 		dev_warn(&pdev->dev,
 			 "failed to get video timing, using defaults\n");
@@ -1648,7 +1650,8 @@ static int dsicm_probe(struct platform_device *pdev)
 
 	ddata->vm.hactive = 480;
 	ddata->vm.vactive = 800;
-	ddata->vm.pixelclock = 480 * 800 * 60;
+	/*ddata->vm.pixelclock = 480 * 800 * 60;*/
+	ddata->vm.pixelclock = MY_PCLOCK;
 
 	r = dsicm_probe_of(pdev);
 	if (r)

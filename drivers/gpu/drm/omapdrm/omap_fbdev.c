@@ -100,7 +100,7 @@ static int omap_fbdev_create(struct drm_fb_helper *helper,
 	dma_addr_t dma_addr;
 	int ret;
 
-	sizes->surface_bpp = 32;
+	sizes->surface_bpp = /*32*/24;
 	sizes->surface_depth = 24;
 
 	DBG("create fbdev: %dx%d@%d (%dx%d)", sizes->surface_width,

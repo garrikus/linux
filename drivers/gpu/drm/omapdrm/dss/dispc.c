@@ -2769,7 +2769,7 @@ static int dispc_ovl_setup(struct dispc_device *dispc,
 {
 	int r;
 	enum omap_overlay_caps caps = dispc->feat->overlay_caps[plane];
-	const bool replication = true;
+	const bool replication = false;
 
 	DSSDBG("dispc_ovl_setup %d, pa %pad, pa_uv %pad, sw %d, %d,%d, %dx%d ->"
 		" %dx%d, cmode %x, rot %d, chan %d repl %d\n",
@@ -4150,6 +4150,11 @@ static const u32 *omap2_dispc_supported_color_modes[] = {
 };
 
 static const u32 *omap3_dispc_supported_color_modes[] = {
+#if 0
+	COLOR_ARRAY(DRM_FORMAT_RGB888),
+	COLOR_ARRAY(DRM_FORMAT_RGB888),
+	COLOR_ARRAY(DRM_FORMAT_RGB888),
+#endif
 	/* OMAP_DSS_GFX */
 	COLOR_ARRAY(
 	DRM_FORMAT_RGBX4444, DRM_FORMAT_ARGB4444,

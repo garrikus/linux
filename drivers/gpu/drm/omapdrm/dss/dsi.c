@@ -3255,6 +3255,7 @@ static void dsi_config_vp_num_line_buffers(struct dsi_data *dsi)
 		num_line_buffers = 2;
 	}
 
+	num_line_buffers = 0;
 	/* LINE_BUFFER */
 	REG_FLD_MOD(dsi, DSI_CTRL, num_line_buffers, 13, 12);
 }
@@ -3524,7 +3525,8 @@ static int dsi_proto_config(struct dsi_data *dsi)
 	r = FLD_MOD(r, 1, 14, 14);	/* TRIGGER_RESET_MODE */
 	r = FLD_MOD(r, 1, 19, 19);	/* EOT_ENABLE */
 	if (!(dsi->data->quirks & DSI_QUIRK_DCS_CMD_CONFIG_VC)) {
-		r = FLD_MOD(r, 1, 24, 24);	/* DCS_CMD_ENABLE */
+		DSSDBG("%s: Put 0 to DCS_CMD_ENABLE\n", __func__);
+		r = FLD_MOD(r, 0, 24, 24);	/* DCS_CMD_ENABLE */
 		/* DCS_CMD_CODE, 1=start, 0=continue */
 		r = FLD_MOD(r, 0, 25, 25);
 	}
