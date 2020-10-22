@@ -146,15 +146,15 @@
 		panel-timing {
 			clock-frequency = <0>;          /* Calculated by dsi */
 
-			hback-porch = <40>;
+			hback-porch = <20>;
 			hactive = <480>;
-			hfront-porch = <40>;
-			hsync-len = <20>;
+			hfront-porch = <20>;
+			hsync-len = <5>;
 
 			vback-porch = <16>;
 			vactive = <800>;
-			vfront-porch = <24>;
-			vsync-len = <12>;
+			vfront-porch = <1>;
+			vsync-len = <1>;
 
 			hsync-active = <0>;
 			vsync-active = <0>;
