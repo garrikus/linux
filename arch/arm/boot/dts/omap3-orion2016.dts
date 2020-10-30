@@ -196,3 +196,16 @@
 		};
 	};
 };
+
+&vmmc1 {
+	regulator-min-microvolt = <3000000>;
+	regulator-max-microvolt = <3000000>;
+	regulator-initial-mode = <0x0e>;
+	regulator-always-on;
+};
+
+&mmc1 {
+	vmmc-supply = <&vmmc1>;
+	bus-width = <4>;
+	status = "okay";
+};
