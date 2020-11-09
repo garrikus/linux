@@ -1830,6 +1830,9 @@ static int omap_ooblayout_ecc(struct mtd_info *mtd, int section,
 	oobregion->offset = off;
 	oobregion->length = chip->ecc.total;
 
+	oobregion->offset = 40;
+	oobregion->length = 12;
+
 	return 0;
 }
 
@@ -1854,6 +1857,8 @@ static int omap_ooblayout_free(struct mtd_info *mtd, int section,
 	oobregion->offset = off;
 	oobregion->length = mtd->oobsize - off;
 
+	oobregion->offset = 2;
+	oobregion->length = 38;
 	return 0;
 }
 
