@@ -98,6 +98,7 @@
 	};
 };
 
+/* DTS for TCA 8418 */
 &i2c2 {
 	status = "okay";
 
@@ -107,16 +108,16 @@
 		interrupt-parent = <&gpio1>;
 		interrupts = <15 IRQ_TYPE_EDGE_FALLING>;
 		linux,keymap = < MATRIX_KEY(0x00, 0x00, KEY_DOWN)
-			MATRIX_KEY(0x00, 0x01, KEY_E)
-			MATRIX_KEY(0x01, 0x00, KEY_LEFT)
-			MATRIX_KEY(0x01, 0x01, KEY_J)
-			MATRIX_KEY(0x01, 0x02, KEY_B)
-			MATRIX_KEY(0x02, 0x00, KEY_RIGHT)
-			MATRIX_KEY(0x02, 0x01, KEY_A)
-			MATRIX_KEY(0x03, 0x00, KEY_UP)
-			MATRIX_KEY(0x03, 0x01, KEY_ENTER)
-			MATRIX_KEY(0x03, 0x02, KEY_I)
-		>;
+			               MATRIX_KEY(0x00, 0x01, KEY_E)
+			               MATRIX_KEY(0x01, 0x00, KEY_LEFT)
+			               MATRIX_KEY(0x01, 0x01, KEY_J)
+			               MATRIX_KEY(0x01, 0x02, KEY_B)
+			               MATRIX_KEY(0x02, 0x00, KEY_RIGHT)
+			               MATRIX_KEY(0x02, 0x01, KEY_A)
+			               MATRIX_KEY(0x03, 0x00, KEY_UP)
+			               MATRIX_KEY(0x03, 0x01, KEY_ENTER)
+			               MATRIX_KEY(0x03, 0x02, KEY_I)
+		              >;
 		keypad,num-rows = <8>;
 		keypad,num-columns = <10>;
 	};
@@ -285,3 +286,17 @@
 		};
 	};
 };
+
+&vmmc1 {
+	regulator-min-microvolt = <3000000>;
+	regulator-max-microvolt = <3000000>;
+	regulator-initial-mode = <0x0e>;
+	regulator-always-on;
+};
+
+&mmc1 {
+	vmmc-supply = <&vmmc1>;
+	bus-width = <4>;
+	status = "okay";
+};
+
