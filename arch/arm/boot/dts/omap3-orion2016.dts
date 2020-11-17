@@ -288,6 +288,20 @@
 	};
 };
 
+&usb_otg_hs {
+	status = "okay";
+	interface-type = <0>;
+	usb-phy = <&usb2_phy>;
+	phys = <&usb2_phy>;
+	phy-names = "usb2-phy";
+	mode = <3>;
+	power = <50>;
+};
+
+&usbhshost {
+	status = "disabled";
+};
+
 &vmmc1 {
 	regulator-min-microvolt = <3000000>;
 	regulator-max-microvolt = <3000000>;
