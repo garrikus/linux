@@ -313,5 +313,7 @@
 	vmmc-supply = <&vmmc1>;
 	bus-width = <4>;
 	status = "okay";
+	broken-cd;
+	disable-wp;
 };
 
