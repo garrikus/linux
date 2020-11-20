@@ -180,12 +180,12 @@
 			clock-frequency = <0>;          /* Calculated by dsi */
 
 			hback-porch = <20>;
-			hactive = <480>;
+			hactive = <488>;
 			hfront-porch = <20>;
 			hsync-len = <5>;
 
 			vback-porch = <16>;
-			vactive = <800>;
+			vactive = <801>;
 			vfront-porch = <1>;
 			vsync-len = <1>;
 
