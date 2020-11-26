@@ -1,14 +1,24 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * TSC2005 touchscreen driver
+ * TSC2008 touchscreen driver
  *
- * Copyright (C) 2006-2010 Nokia Corporation
- * Copyright (C) 2015 QWERTY Embedded Design
- * Copyright (C) 2015 EMAC Inc.
+ * drivers/input/touchscreen/tsc2008.c
  *
- * Based on original tsc2005.c by Lauri Leukkunen <lauri.leukkunen@nokia.com>
+ * Author: Hrechko Vladimir <grechko_vo@navis.ru>
+ *
+ * Using code from:
+ * - tsc2008.c
+ *     Copyright (c) 2010 Cyber Switching, Inc.
+ *     Chris Verges <chrisv@cyberswitching.com>
+ *     Robert Mehranfar <robertme@earthlink.net>
+ * - tsc2007_core.c
+ *     Copyright (c) 2008 MtekVision Co., Ltd.
+ *	   Kwangwoo Lee <kwlee@mtekvision.com>
+ * - tsc200x-core.c
+ *     Copyright (C) 2006-2010 Nokia Corporation
+ *     Copyright (C) 2015 QWERTY Embedded Design
+ *     Copyright (C) 2015 EMAC Inc.
+ *     Lauri Leukkunen <lauri.leukkunen@nokia.com>
  */
-
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/module.h>
@@ -31,9 +41,6 @@ static irqreturn_t tsc2008_irq(int irq, void *handle)
 		schedule_delayed_work(&ts->work,
 				      msecs_to_jiffies(TS_POLL_DELAY));
 	}
-
-	if (ts->clear_penirq)
-		ts->clear_penirq();
 
 	return IRQ_HANDLED;
 }
@@ -64,12 +71,12 @@ static void tsc2008_read_values(struct tsc2008 *tsc, struct ts_event *tc)
 	dev_dbg(&tsc->spi->dev, "data: z1 %05u 0x%08x\n", tc->z1, tc->z1);
 	dev_dbg(&tsc->spi->dev, "data: z2 %05u 0x%08x\n", tc->z2, tc->z2);
 
-	if (tsc->max_bits == MAX_8BIT) {
+	if (tsc->max_bits == 8) {
 		tc->x  = (tc->x  << 1) & 0x00FF;
 		tc->y  = (tc->y  << 1) & 0x00FF;
 		tc->z1 = (tc->z1 << 1) & 0x00FF;
 		tc->z2 = (tc->z2 << 1) & 0x00FF;
-	} else if (tsc->max_bits == MAX_12BIT) {
+	} else if (tsc->max_bits == 12) {
 		tc->x  = (be16_to_cpu(tc->x)  << 1) >> 4 & 0x0FFF;
 		tc->y  = (be16_to_cpu(tc->y)  << 1) >> 4 & 0x0FFF;
 		tc->z1 = (be16_to_cpu(tc->z1) << 1) >> 4 & 0x0FFF;
@@ -89,15 +96,15 @@ static uint32_t tsc2008_calculate_pressure(struct tsc2008 *tsc, struct ts_event 
 	uint32_t rt = 0;
 
 	/* range filtering */
-	if (tc->x == (tsc->max_bits - 1))
+	if (tc->x == (tsc->bit_rate - 1))
 		tc->x = 0;
 
 	if (likely(tc->x && tc->z1)) {
 		rt = (tc->z2 / tc->z1) - 1;
 		rt *= tc->y * tsc->x_plate_ohms;
-		rt /= tsc->max_bits;
+		rt /= tsc->bit_rate;
 
-		if (tsc->max_bits == MAX_8BIT)
+		if (tsc->bit_rate == MAX_8BIT)
 			rt &= 0x00FF;
 		else
 			rt &= 0x0FFF;
@@ -144,7 +151,7 @@ static void tsc2008_work(struct work_struct *work)
 	tsc2008_read_values(ts, &tc);
 
 	rt = tsc2008_calculate_pressure(ts, &tc);
-	if (rt >= ts->max_bits) {
+	if (rt >= ts->bit_rate) {
 		/*
 		 * Sample found inconsistent by debouncing or pressure is
 		 * beyond the maximum. Don't report it to user space,
@@ -199,30 +206,25 @@ static int tsc2008_probe(struct spi_device *spi)
   struct device_node  *node_ptr = spi->dev.of_node;
   struct spi_transfer *x = 0;
   uint32_t val32 = 0;
-  uint64_t val64 = 0;
   uint8_t tx_buf = 0;
   int     error  = 0;
   int     num_bytes_rx = 0;
 
-  printk(KERN_DEBUG "tsc2008: probe start...\n");
-
-  printk(KERN_DEBUG "tsc2008: spi max speed %d\n", spi->max_speed_hz);
-
 	if( spi->irq <= 0 ) {
-		printk( KERN_DEBUG "tsc2008 spi irq err\n");
+		dev_err(&spi->dev, "spi irq err\n");
 		return -ENODEV;
 	}
 
 	if( !node_ptr )
 	{
-    printk( KERN_DEBUG "tsc2008 no device tree data\n");
+    dev_err(&spi->dev, "no device tree data\n");
 		return -EINVAL;
 	}
 
   ts = devm_kzalloc(&spi->dev, sizeof(*ts), GFP_KERNEL );
   if( !ts )
   {
-  	printk( KERN_DEBUG "tsc2008 no mem for tsc2008\n");
+  	dev_err(&spi->dev, "no device tree data\n");
   	return -ENOMEM;
   }
 
@@ -230,62 +232,127 @@ static int tsc2008_probe(struct spi_device *spi)
   ts->gpio = of_get_gpio(node_ptr, 0);
   if(gpio_is_valid(ts->gpio))
   {
-  	printk( KERN_DEBUG "tsc2008 gpio OK\n");
     ts->get_pendown_state = tsc2008_get_pendown_state;
   }
   else
   {
-  	printk( KERN_DEBUG "tsc2008 gpio ERR\n");
   	error = -EINVAL;
+  	dev_err(&spi->dev, "set no valid gpio\n");
   	goto fail_free_spi_mem;
   }	
 
   if(!of_property_read_u32(node_ptr, "ti,x-plate-ohms", &val32))
   {
-  	printk( KERN_DEBUG "tsc2008 x-plate-ohms read OK (%d)\n", val32);
   	ts->x_plate_ohms = val32;
   }
   else
   {
-  	printk( KERN_DEBUG "tsc2008 x-plate-ohms read ERR\n");
+  	dev_err(&spi->dev, "x-plate-ohms read ERR\n");
   	return -EINVAL;
   }
 
-  if(!of_property_read_u32(node_ptr, "ti,max-bits", &val32))
+  if(!of_property_read_u32(node_ptr, "max-bits", &val32))
   {
-  	printk( KERN_DEBUG "tsc2008 max bits read OK (%d)\n", val32);
-  	if( (val32 == 8) || (val32 == 12) )
-  	{
-  		ts->max_bits = (1 << val32);
-  		spi->bits_per_word = val32; 
-  	}
+  	if(val32 == 8)
+  	  ts->max_bits = 8;
   	else
-  	{
-  		printk( KERN_DEBUG "tsc2008 max bits wrong value %d\n", val32);
-  	  ts->max_bits = (1 << 12);
-  	  spi->bits_per_word = 12;
-  	}
+      ts->max_bits = 12;
+  }
+  else
+    ts->max_bits = 12;
+
+  if(!of_property_read_u32(node_ptr, "touchscreen-min-x", &val32))
+  {
+  	ts->min_x = val32;
+  }
+  else
+    ts->min_x = 0;
+
+  if(!of_property_read_u32(node_ptr, "touchscreen-size-x", &val32))
+  {
+  	ts->max_x = val32;
   }
   else
   {
-  	printk( KERN_DEBUG "tsc2008 max bits read ERR\n");
-  	ts->max_bits = (1 << 12);
-  	spi->bits_per_word = 12;
+  	if( ts->max_bits == 8 )
+    	ts->max_x = 256;
+    else
+    	ts->max_x = 4096;
   }
 
+  if(!of_property_read_u32(node_ptr, "touchscreen-min-y", &val32))
+  {
+  	ts->min_y = val32;
+  }
+  else
+    ts->min_y = 0;
+
+  if(!of_property_read_u32(node_ptr, "touchscreen-size-y", &val32))
+  {
+  	ts->max_y = val32;
+  }
+  else
+  {
+  	if( ts->max_bits == 8 )
+    	ts->max_y = 256;
+    else
+    	ts->max_y = 4096;
+  }
+
+  if(!of_property_read_u32(node_ptr, "touchscreen-min-pressure", &val32))
+  {
+  	ts->min_z = val32;
+  }
+  else
+    ts->min_z = 0;
+
+  if(!of_property_read_u32(node_ptr, "touchscreen-max-pressure", &val32))
+  {
+  	ts->max_z = val32;
+  }
+  else
+  {
+  	if( ts->max_bits == 8 )
+    	ts->max_z = 128;
+    else
+    	ts->max_z = 2048;
+  }
+
+  if(!of_property_read_u32(node_ptr, "touchscreen-fuzz-x", &val32))
+  {
+  	ts->fuzz_x = val32;
+  }
+  else
+    ts->fuzz_x = 0;
+
+  if(!of_property_read_u32(node_ptr, "touchscreen-fuzz-y", &val32))
+  {
+  	ts->fuzz_y = val32;
+  }
+  else
+    ts->fuzz_y = 0;
+
+  if(!of_property_read_u32(node_ptr, "touchscreen-fuzz-pressure", &val32))
+  {
+  	ts->fuzz_z = val32;
+  }
+  else
+    ts->fuzz_z = 0;
+
+  ts->bit_rate = (1 << ts->max_bits);
   spi->mode = SPI_MODE_0; // original MicroWave
-  
+  spi->bits_per_word = 8;
   error = spi_setup(spi);
 	if (error)
 	{
-		printk( KERN_DEBUG "tsc2008 spi setup error\n");
+		dev_err(&spi->dev, "spi setup ERR\n");
 		return error;
 	}
 
   input_dev = devm_input_allocate_device(&spi->dev);
   if( !input_dev )
   {
-    printk( KERN_DEBUG "tsc2008 no mem for input_dev\n");
+    dev_err(&spi->dev, "no mem for input_dev\n");
     error = -ENOMEM;
     goto fail_free_spi_mem;
   }
@@ -306,21 +373,21 @@ static int tsc2008_probe(struct spi_device *spi)
   input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 	input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 
-  input_set_abs_params(input_dev, ABS_X, 0, ts->max_bits, 0, 0);
-	input_set_abs_params(input_dev, ABS_Y, 0, ts->max_bits, 0, 0);
-	input_set_abs_params(input_dev, ABS_PRESSURE, 0, ts->max_bits, 0, 0);
+  input_set_abs_params(input_dev, ABS_X, 
+  	                   ts->min_x, ts->max_x, ts->fuzz_x, 0);
+	input_set_abs_params(input_dev, ABS_Y, 
+		                   ts->min_y, ts->max_y, ts->fuzz_y, 0);
+	input_set_abs_params(input_dev, ABS_PRESSURE, 
+		                   ts->min_z, ts->max_z, ts->fuzz_z, 0);
 
   error = request_irq(ts->irq, 
   	                  tsc2008_irq, 
   	                  IRQF_TRIGGER_FALLING,
 			                spi->dev.driver->name, ts);
 	if (error < 0) {
-		printk(KERN_DEBUG "ts2008: irq error %d...\n", error);
+		//printk(KERN_DEBUG "ts2008: irq error %d...\n", error);
+		dev_err(&spi->dev, "irq request err\n");
 		goto fail_free_input_device;
-	}
-	else
-	{
-    printk(KERN_DEBUG "ts2008 irq OK\n");
 	}
 
 	/* Setup SPI variables */
@@ -330,7 +397,7 @@ static int tsc2008_probe(struct spi_device *spi)
 	 * TSC2008_MEASURE_X and TSC2008_MEASURE_Y are intentionally
 	 * swapped below.
 	 */
-	if (ts->max_bits == MAX_8BIT) {
+	if (ts->max_bits == 8) {
 		dev_dbg(&spi->dev, "using 8-bit mode\n");
 		num_bytes_rx = 1;
 		ts->tx_buf[0] = ADC_ON_8BIT | TSC2008_MEASURE_Y;
@@ -404,7 +471,7 @@ static int tsc2008_probe(struct spi_device *spi)
 	error = spi_write(spi, &tx_buf, 1);
 	if (error < 0)
 	{
-    printk(KERN_DEBUG "ts2008: spi write err 1\n");
+    dev_err(&spi->dev, "spi write error\n");
 		goto fail_free_input_device;
 	}
 	udelay(1);
@@ -417,7 +484,7 @@ static int tsc2008_probe(struct spi_device *spi)
 	error = spi_write(spi, &tx_buf, 1);
 	if (error < 0)
 	{
-		printk(KERN_DEBUG "ts2008: spi write err 2...\n");
+		dev_err(&spi->dev, "spi write error\n");
 		goto fail_free_input_device;
 	}
 
@@ -425,15 +492,14 @@ static int tsc2008_probe(struct spi_device *spi)
 	error = input_register_device(input_dev);
 	if (error)
 	{
-		printk(KERN_DEBUG "ts2008: input dev reg error...\n");
+		dev_err(&spi->dev, "input device register ERR\n");
 		goto fail_free_input_device;
 	}
 
-  printk(KERN_DEBUG "ts2008: probe end...\n");
 	return 0;
 
-  printk(KERN_DEBUG "ts2008: probe fail (code %d)...\n", error);
 fail_free_input_device:
+  free_irq(ts->irq, ts);
   input_free_device(input_dev);
 fail_free_spi_mem:
   kfree(ts);
@@ -442,7 +508,23 @@ fail_free_spi_mem:
 
 static int tsc2008_remove(struct spi_device *spi)
 {
-	//printk(KERN_DEBUG "ts2008: remove...\n");
+	struct tsc2008 *ts = dev_get_drvdata(&spi->dev);
+  
+  free_irq(ts->irq, ts);
+	if (cancel_delayed_work_sync(&ts->work)) {
+		/*
+		 * Work was pending, therefore we need to enable
+		 * IRQ here to balance the disable_irq() done in the
+		 * interrupt handler.
+		 */
+		enable_irq(ts->irq);
+	}
+
+	input_unregister_device(ts->input);
+	kfree(ts);
+
+	dev_dbg(&spi->dev, "unregistered touchscreen\n");
+
 	return 0;
 }
 
@@ -460,12 +542,12 @@ static struct spi_driver tsc2008_driver = {
 		.of_match_table = of_match_ptr(tsc2008_of_match),
 	},
 	.probe	= tsc2008_probe,
-	//.remove	= tsc2008_remove,
+	.remove	= tsc2008_remove,
 };
 
 module_spi_driver(tsc2008_driver);
 
-MODULE_AUTHOR("Michael Welling <mwelling@ieee.org>");
+MODULE_AUTHOR("Hrechko Vladimir <grechko_vo@navis.ru>");
 MODULE_DESCRIPTION("TSC2008 Touchscreen Driver");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("spi:tsc2008");

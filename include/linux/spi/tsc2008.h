@@ -61,11 +61,20 @@ struct tsc2008 {
   uint16_t model;                  
   uint16_t x_plate_ohms;            
   uint16_t max_bits;
+  uint16_t min_x;
+  uint16_t max_x;
+  uint16_t min_y;
+  uint16_t max_y;
+  uint16_t min_z;
+  uint16_t max_z;
+  uint16_t fuzz_x;
+  uint16_t fuzz_y;
+  uint16_t fuzz_z;
+
+  uint16_t bit_rate;
   uint32_t gpio;               
-       
   bool pendown;                     
   int  irq;                        
-  int  (*get_pendown_state)(uint32_t gpio);  
-  void (*clear_penirq)(void);       
+  int  (*get_pendown_state)(uint32_t gpio);   
 };
 #endif
