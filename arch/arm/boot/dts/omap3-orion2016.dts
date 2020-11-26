@@ -132,13 +132,6 @@
 &dsi {
 	status = "ok";
 
-	/*
-	pinctrl-names = "default";
-	pinctrl-0 = <&dsi_pins>;
-
-	vdd-supply = <&vpll2>;
-	 */
-
 	port {
 		dsi_out_ep: endpoint {
 			remote-endpoint = <&lcd0_in>;
@@ -150,28 +143,16 @@
 		compatible = "aviv-dsi";
 		label = "lcd0";
 
-		/*
-		pinctrl-names = "default";
-		pinctrl-0 = <&display_pins>;
-		*/
-
 		vpnl-supply = <&vaux3>;
-		/*
-		vddi-supply = <&vio>;
-		 */
 
 		reset-gpios = <&gpio6 20 GPIO_ACTIVE_HIGH>;
-		/*te-gpios = <&gpio2 30 GPIO_ACTIVE_HIGH>;	 62 */
+	
 
-		width-mm = <52>; /* 51.84 mm */
-		height-mm = <86>; /* 86.4 mm */
+		width-mm = <52>; 
+		height-mm = <86>; 
 
-		/* TODO:
-		 * - panel is upside-down
-		 * - top + bottom 5px are not visible
-		 */
 		panel-timing {
-			clock-frequency = <0>;          /* Calculated by dsi */
+			clock-frequency = <0>;
 
 			hback-porch = <40>;
 			hactive = <480>;
@@ -208,4 +189,27 @@
 	vmmc-supply = <&vmmc1>;
 	bus-width = <4>;
 	status = "okay";
+};
+
+&mcspi1 {
+  status = "okay";
+
+	tsc2008@0{
+	  compatible = "ti,tsc2008";
+	  spi-max-frequency = <25000000>;
+	  reg = <0>;
+
+	  interrupts-extended = <&gpio1 14 IRQ_TYPE_EDGE_RISING>;
+	  gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;	/* GPIO_14 for penup */
+
+	  ti,max-bits = <8>;
+    touchscreen-fuzz-x = <4>;
+		touchscreen-fuzz-y = <7>;
+		touchscreen-fuzz-pressure = <2>;
+		touchscreen-size-x = <4096>;
+		touchscreen-size-y = <4096>;
+		touchscreen-max-pressure = <2048>;
+
+		ti,x-plate-ohms = <450>;
+	};
 };
