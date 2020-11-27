@@ -45,12 +45,14 @@
 	pwm8: dmtimer-pwm8 {
 		compatible = "ti,omap-dmtimer-pwm";
 		ti,timers = <&timer8>;
+		ti,clock-source = <0>;
 		#pwm-cells = <3>;
 	};
 
 	pwm9: dmtimer-pwm9 {
 		compatible = "ti,omap-dmtimer-pwm";
 		ti,timers = <&timer9>;
+		ti,clock-source = <0>;
 		#pwm-cells = <3>;
 	};
 };
