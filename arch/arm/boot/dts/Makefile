@@ -739,6 +739,7 @@ dtb-$(CONFIG_ARCH_OMAP3) += \
 	omap3-n900.dtb \
 	omap3-n9.dtb \
 	omap3-n950.dtb \
+	omap3-orion2016.dtb \
 	omap3-overo-alto35.dtb \
 	omap3-overo-chestnut43.dtb \
 	omap3-overo-gallop43.dtb \
