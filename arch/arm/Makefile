@@ -330,13 +330,15 @@ archprepare:
 # Convert bzImage to zImage
 bzImage: zImage
 
-BOOT_TARGETS	= zImage Image xipImage bootpImage uImage
+BOOT_TARGETS	= zImage zImageDTB Image xipImage bootpImage uImage uImageDTB
 INSTALL_TARGETS	= zinstall uinstall install
 
 PHONY += bzImage $(BOOT_TARGETS) $(INSTALL_TARGETS)
 
 bootpImage uImage: zImage
+zImageDTB: zImage
 zImage: Image
+uImageDTB: zImageDTB
 
 $(BOOT_TARGETS): vmlinux
 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@

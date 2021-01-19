@@ -27,7 +27,7 @@ INITRD_PHYS := $(initrd_phys-y)
 
 export ZRELADDR INITRD_PHYS PARAMS_PHYS
 
-targets := Image zImage xipImage bootpImage uImage
+targets := Image zImage xipImage bootpImage uImage zImageDTB uImageDTB
 
 ifeq ($(CONFIG_XIP_KERNEL),y)
 
@@ -66,6 +66,13 @@ $(obj)/compressed/vmlinux: $(obj)/Image FORCE
 $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 	$(call if_changed,objcopy)
 
+quiet_cmd_dtbcat = DTBCAT     $@
+      cmd_dtbcat = cat $(real-prereqs)  >$@
+
+$(obj)/zImageDTB:  $(obj)/zImage $(srctree)/arch/arm/boot/dts/$(APPENDED_DTB_NAME).dtb FORCE
+	$(call if_changed,dtbcat)
+	echo "Let us  do $(obj)/zImage"
+
 endif
 
 ifneq ($(LOADADDR),)
@@ -87,6 +94,10 @@ if [ $(words $(UIMAGE_LOADADDR)) -ne 1 ]; then \
 fi
 
 $(obj)/uImage:	$(obj)/zImage FORCE
+	@$(check_for_multiple_loadaddr)
+	$(call if_changed,uimage)
+
+$(obj)/uImageDTB:  $(obj)/zImageDTB FORCE
 	@$(check_for_multiple_loadaddr)
 	$(call if_changed,uimage)
 
