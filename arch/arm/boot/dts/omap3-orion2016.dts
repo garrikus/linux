@@ -55,7 +55,17 @@
 		ti,clock-source = <0>;
 		#pwm-cells = <3>;
 	};
+
+	/*sound: sound {
+    compatible = "orion2-audio";
+    ti,model = "Orion2 Sound";
+    ti,mcbsp = <&mcbsp2>;
+	};*/
 };
+
+/*&mcbsp2 {
+	status = "ok";
+};*/
 
 &omap3_pmx_core {
 	pinctrl-use-default; /* X-Loader has muxed the pins. Let them be. */
@@ -88,8 +98,18 @@
 
 	twl: twl@48 {
 		reg = <0x48>;
-		interrupts = <7>; /* SYS_NIRQ cascaded to intc */
+		interrupts = <7>;           
 		interrupt-parent = <&intc>;
+
+	/*	twl_audio: audio {
+			compatible = "ti,twl4030-audio";
+
+			ti,enable-vibra = <0>;
+
+			codec {
+			};
+		};
+		*/
 	};
 };
 
@@ -116,8 +136,22 @@
 		keypad,num-rows = <8>;
 		keypad,num-columns = <10>;
 	};
-};
 
+	mpu: mpu9250@68 {
+		compatible = "invensense,mpu9250";
+		reg = <0x68>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <16 IRQ_TYPE_EDGE_RISING>;
+		/*i2c-gate {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			ax8963@c {
+				compatible = "ak,ak8963";
+				reg = <0x0c>;
+			};
+		};*/
+	};
+};
 
 #include "twl4030.dtsi"
 /* #include "twl4030_omap3.dtsi" */
@@ -127,11 +161,11 @@
 	regulator-max-microvolt = <2800000>;
 };
 
-&dss {
+/*&dss {
 	status = "ok";
-};
+};*/
 
-&dsi {
+/*&dsi {
 	status = "ok";
 
 	port {
@@ -178,7 +212,7 @@
 			};
 		};
 	};
-};
+};*/
 
 &vmmc1 {
 	regulator-min-microvolt = <3000000>;
@@ -193,6 +227,7 @@
 	status = "okay";
 };
 
+/*
 &mcspi1 {
   status = "okay";
 
@@ -202,9 +237,9 @@
 	  reg = <0>;
 
 	  interrupts-extended = <&gpio1 14 IRQ_TYPE_EDGE_RISING>;
-	  gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;	/* GPIO_14 for penup/pendown */
+	  gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;	
 
-	  max-bits = <12>;       /* supports only: 8 bit (256x256), 12 (4096x4096) */
+	  max-bits = <12>;      
 	  touchscreen-min-x = <0>;
 	  touchscreen-min-y = <0>;
 	  touchscreen-min-pressure = <0>;
@@ -217,4 +252,4 @@
 
 		ti,x-plate-ohms = <450>;
 	};
-};
+};*/
