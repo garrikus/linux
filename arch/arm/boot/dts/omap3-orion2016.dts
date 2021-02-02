@@ -123,6 +123,13 @@
 		keypad,num-rows = <8>;
 		keypad,num-columns = <10>;
 	};
+
+	mpu: mpu9250@68 {
+		compatible = "invensense,mpu9250";
+		reg = <0x68>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <16 IRQ_TYPE_EDGE_RISING>;
+	};
 };
 
 #include "twl4030.dtsi"
