@@ -122,6 +122,7 @@
 		              >;
 		keypad,num-rows = <8>;
 		keypad,num-columns = <10>;
+		keypad,autorepeat;
 	};
 
 	mpu: mpu9250@68 {
