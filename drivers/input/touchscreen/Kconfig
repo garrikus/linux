@@ -1100,6 +1100,18 @@ config TOUCHSCREEN_TSC2007
 	  To compile this driver as a module, choose M here: the
 	  module will be called tsc2007.
 
+config TOUCHSCREEN_TSC2008
+	tristate "TSC2008 based touchscreens"
+	depends on SPI_MASTER
+	help
+	  Say Y here if you have a TSC2008 based touchscreen.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called tsc2008.
+
+
 config TOUCHSCREEN_TSC2007_IIO
 	bool "IIO interface for external ADC input and temperature"
 	depends on TOUCHSCREEN_TSC2007

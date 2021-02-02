@@ -317,3 +317,28 @@
 	disable-wp;
 };
 
+&mcspi1 {
+	status = "okay";
+
+	tsc2008@0{
+		compatible = "ti,tsc2008";
+		spi-max-frequency = <25000000>;
+		reg = <0>;
+
+		interrupts-extended = <&gpio1 14 IRQ_TYPE_EDGE_RISING>;
+		gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;	/* GPIO_14 for penup/pendown */
+
+		max-bits = <12>;       /* supports only: 8 bit (256x256), 12 (4096x4096) */
+		touchscreen-min-x = <0>;
+		touchscreen-min-y = <0>;
+		touchscreen-min-pressure = <0>;
+		touchscreen-size-x = <4096>;
+		touchscreen-size-y = <4096>;
+		touchscreen-max-pressure = <2048>;
+		touchscreen-fuzz-x = <4>;
+		touchscreen-fuzz-y = <7>;
+		touchscreen-fuzz-pressure = <2>;
+
+		ti,x-plate-ohms = <450>;
+	};
+};
