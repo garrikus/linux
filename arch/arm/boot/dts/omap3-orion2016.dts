@@ -140,6 +140,12 @@
 	regulator-max-microvolt = <2800000>;
 };
 
+&vaux4 {
+  regulator-min-microvolt = <3000000>;
+  regulator-max-microvolt = <3000000>;
+  regulator-always-on;
+};
+
 &dss {
 	status = "ok";
 };
