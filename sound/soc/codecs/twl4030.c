@@ -309,6 +309,14 @@ static void twl4030_init_chip(struct snd_soc_component *component)
 	twl4030_write(component, TWL4030_REG_ANAMICL,
 		      reg | TWL4030_CNCL_OFFSET_START);
 
+  /* Custom Sets for Orion2 */
+  reg = 0x25;
+	twl4030_write(component, TWL4030_REG_MICBIAS_CTL, reg);
+
+	reg = 0x03;
+	twl4030_write(component, TWL4030_REG_ADCMICSEL, reg);
+
+  printk(KERN_DEBUG "CODEC SET DONE");
 	/*
 	 * Wait for offset cancellation to complete.
 	 * Since this takes a while, do not slam the i2c.
@@ -2163,6 +2171,7 @@ static int twl4030_soc_probe(struct snd_soc_component *component)
 	twl4030->sysclk = twl4030_audio_get_mclk() / 1000;
 
 	twl4030_init_chip(component);
+  printk(KERN_DEBUG "TWL CODEC PROBE");
 
 	return 0;
 }
@@ -2195,6 +2204,7 @@ static const struct snd_soc_component_driver soc_component_dev_twl4030 = {
 
 static int twl4030_codec_probe(struct platform_device *pdev)
 {
+	printk(KERN_DEBUG "CODEC PROBE");
 	return devm_snd_soc_register_component(&pdev->dev,
 				      &soc_component_dev_twl4030,
 				      twl4030_dai, ARRAY_SIZE(twl4030_dai));
