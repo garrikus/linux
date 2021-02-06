@@ -1,10 +1,17 @@
 #ifndef _ORION2_AUDIO_H_
 #define _ORION2_AUDIO_H_
 
+#include <linux/types.h>
+
 /* MACRO */
 //! \brief Driver name
 #define DEBUG
-#define ORION_DRIVER_NAME    "orion2-audio"
 /* Structures  */
+struct orion2_audio_dev {
+
+  // Amplifier
+  bool amp;
+  u32  amp_gpio;
+};
 
 #endif

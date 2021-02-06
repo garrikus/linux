@@ -7,41 +7,24 @@
 #include <sound/pcm.h>
 #include <linux/gpio.h>
 
-
-#define ORION2_SPK_AMP_GPIO 205
-
-// STILL HACK: Determination of amp presence by checking MPU driver is a terrible solution
-extern struct bus_type i2c_bus_type;
-static int is_codec_amp_control(void)
-{
-  struct device_driver *drv;
-
-  drv = driver_find("inv-mpu6050-i2c", &i2c_bus_type);    // in new Orion2 we have mpu9250 (wich is a part of mpu6050 i2c module)
-  if(drv == NULL)
-  {
-    printk(KERN_DEBUG "Old device\n");
-    return 0;
-  }
-  printk(KERN_DEBUG "New device\n");
-  return 1;
-}
+static struct orion2_audio_dev *orion2_dev;
 
 static int orion2_codec_amp_start(struct snd_pcm_substream *substream)
 {
-  if(is_codec_amp_control())
+  if(orion2_dev->amp)
   {
     printk(KERN_DEBUG "Amp on\n");
-    gpio_direction_output(ORION2_SPK_AMP_GPIO, 1);
+    gpio_direction_output(orion2_dev->amp_gpio, 1);
   }
   return 0;
 }
 
 static void orion2_codec_amp_shutdown(struct snd_pcm_substream *substream)
 {
-  if(is_codec_amp_control())
+  if(orion2_dev->amp)
   {
     printk(KERN_DEBUG "Amp off\n");
-    gpio_direction_output(ORION2_SPK_AMP_GPIO, 0);
+    gpio_direction_output(orion2_dev->amp_gpio, 0);
   }
 }
 
@@ -118,61 +101,59 @@ static struct snd_soc_card orion2_card = {
 static int orion2_audio_probe(struct platform_device *pdev)
 {
 #ifdef CONFIG_OF
-  struct device *device = &pdev->dev;
-  struct device_node *node = pdev->dev.of_node;
-
+  struct device       *device = &pdev->dev;
+  struct device_node  *node = pdev->dev.of_node;
+  struct snd_soc_card *card = &orion2_card;
+  struct device_node  *dai_node;
 
   dev_dbg(device, "probe has been started\n");
-  /* \TODO Should init digmic through i2c */
 
-  if( node )
+   /* \TODO Should init digmic through i2c */
+
+  if (!node)
   {
-    struct device_node  *dai_node = of_parse_phandle( node, "ti,mcbsp", 0);
-
-    if( dai_node )
-    {
-      struct snd_soc_card *card = &orion2_card;
-      card->dev = &pdev->dev;
-
-      dev_dbg(device, "dai node name %s\n", dai_node->name);
-
-      if(snd_soc_of_parse_card_name( card, "ti,model" ) == 0)
-      {
-        dev_dbg(device, "card get name %s\n", card->name);
-
-        orion2_dai[0].cpus->dai_name  = NULL;
-        orion2_dai[0].cpus->of_node = dai_node;
-
-        orion2_dai[0].platforms->name  = NULL;
-        orion2_dai[0].platforms->of_node = dai_node;
-
-        dev_dbg(device, "try to register card\n");
-        if( devm_snd_soc_register_card( &pdev->dev, card ) != 0 )
-        {
-          dev_err(device, "card registration has FAILED!\n");
-          return (-EINVAL);
-        }
-        else
-        {
-          dev_dbg(device, "card registration has SUCCESS!\n");
-        }
-      }
-      else
-      {
-        dev_err(device, "Card name isn't present in the device tree\n");
-        return (-ENODEV);
-      }
-    }
-    else
-    {
-      dev_err(device, "McBSP isn't not present in the device tree\n");
-      return (-EINVAL);
-    }
-  }
-  else
-  {
-    dev_err(device, "node not found\n");
+    dev_err(device, "No node in devicetree\n");
     return (-ENODEV);
+  }
+
+  dai_node = of_parse_phandle( node, "ti,mcbsp", 0);
+
+  if(!dai_node)
+  {
+    dev_err(device, "McBSP isn't not present in the device tree\n");
+    return (-EINVAL);
+  }
+
+  card->dev = device;
+  if(snd_soc_of_parse_card_name( card, "ti,model" ))
+  {
+    dev_err(device, "Card name isn't present in the device tree\n");
+    return (-ENODEV);
+  }
+
+  orion2_dai[0].cpus->dai_name  = NULL;
+  orion2_dai[0].cpus->of_node = dai_node;
+
+  orion2_dai[0].platforms->name  = NULL;
+  orion2_dai[0].platforms->of_node = dai_node;
+
+  if( devm_snd_soc_register_card( device, card ) != 0 )
+  {
+    dev_err(device, "Card registration has FAILED!\n");
+    return (-EINVAL);
+  }
+
+  orion2_dev = kzalloc(sizeof(*orion2_dev), GFP_KERNEL );
+  if( orion2_dev == NULL )
+  {
+    dev_err(device, "No memory for device\n");
+    return -ENOMEM;
+  }
+
+  if(!of_property_read_u32(node, "amp,gpio", &orion2_dev->amp_gpio))
+  {
+    orion2_dev->amp = true;
+    dev_dbg(device, "Get gpio from dt %d\n", orion2_dev->amp_gpio);
   }
 
   dev_dbg(device, "probe has been successfully finished\n");
@@ -184,10 +165,17 @@ static int orion2_audio_probe(struct platform_device *pdev)
 #endif
 }
 
+static int orion2_audio_remove(struct platform_device *pdev)
+{
+	kfree(orion2_dev);
+	dev_dbg(&pdev->dev, "unregistered audio\n");
+	return 0;
+}
+
 #ifdef CONFIG_OF
 //! \brief Main device tree structure for ORION2 driver
 static const struct of_device_id orion2_audio_of_match[] = {
-  {.compatible = ORION_DRIVER_NAME, },
+  {.compatible = "orion2-audio", },
   {},
 };
 MODULE_DEVICE_TABLE(of, orion2_audio_of_match);
@@ -203,6 +191,7 @@ static struct platform_driver orion2_audio_driver =
 #endif
   },
   .probe = orion2_audio_probe,
+  .remove	= orion2_audio_remove,
 };
 
 module_platform_driver(orion2_audio_driver);

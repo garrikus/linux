@@ -60,6 +60,7 @@
     compatible = "orion2-audio";
     ti,model = "Orion2";
     ti,mcbsp = <&mcbsp2>;
+		amp,gpio = <205>;
   };
 };
 
