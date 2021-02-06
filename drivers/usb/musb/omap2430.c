@@ -8,6 +8,8 @@
  *
  * This file is part of the Inventra Controller Driver for Linux.
  */
+#define DEBUG
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
@@ -129,6 +131,9 @@ static void omap_musb_set_mailbox(struct omap2430_glue *glue)
 	case MUSB_VBUS_VALID:
 		dev_dbg(musb->controller, "VBUS Connect\n");
 
+		musb->att2_state = MUSB_ATT2_HOST;
+		mod_timer(&musb->att2_timer, jiffies + msecs_to_jiffies(1000));
+
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		musb->xceiv->last_event = USB_EVENT_VBUS;
 		omap_control_usb_set_mode(glue->control_otghs, USB_MODE_DEVICE);
@@ -137,6 +142,9 @@ static void omap_musb_set_mailbox(struct omap2430_glue *glue)
 	case MUSB_ID_FLOAT:
 	case MUSB_VBUS_OFF:
 		dev_dbg(musb->controller, "VBUS Disconnect\n");
+
+		del_timer(&musb->att2_timer);
+		musb->att2_state = MUSB_ATT2_NONE;
 
 		musb->xceiv->last_event = USB_EVENT_NONE;
 		musb_set_peripheral(musb);
@@ -174,8 +182,11 @@ static irqreturn_t omap2430_musb_interrupt(int irq, void *__hci)
 	musb->int_tx = musb_readw(musb->mregs, MUSB_INTRTX);
 	musb->int_rx = musb_readw(musb->mregs, MUSB_INTRRX);
 
-	if (musb->int_usb || musb->int_tx || musb->int_rx)
+	if (musb->int_usb || musb->int_tx || musb->int_rx) {
+		del_timer(&musb->att2_timer);
+		musb->att2_state = MUSB_ATT2_HOST;
 		retval = musb_interrupt(musb);
+	}
 
 	spin_unlock_irqrestore(&musb->lock, flags);
 

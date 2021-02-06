@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
+#define DEBUG
+
 /*
  * MUSB OTG driver core code
  *
@@ -1946,6 +1948,35 @@ vbus_show(struct device *dev, struct device_attribute *attr, char *buf)
 }
 static DEVICE_ATTR_RW(vbus);
 
+static ssize_t
+musb_att2_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct musb	*musb = dev_to_musb(dev);
+	unsigned long	flags;
+	unsigned long	val;
+	int ret =  -EINVAL;
+
+	spin_lock_irqsave(&musb->lock, flags);
+	val = musb->att2_state;
+	spin_unlock_irqrestore(&musb->lock, flags);
+
+    switch (val) {
+    case MUSB_ATT2_NONE:
+        ret = sprintf(buf, "none\n");
+        break;
+    case MUSB_ATT2_HOST:
+        ret = sprintf(buf, "host\n");
+        break;
+    case MUSB_ATT2_WALL:
+        ret = sprintf(buf, "wall\n");
+        break;
+    }
+
+    return ret;
+}
+static DEVICE_ATTR(att2, S_IRUGO, musb_att2_show, NULL);
+
+
 /* Gadget drivers can't know that a host is connected so they might want
  * to start SRP, but users can.  This allows userspace to trigger SRP.
  */
@@ -1972,6 +2003,7 @@ static struct attribute *musb_attrs[] = {
 	&dev_attr_mode.attr,
 	&dev_attr_vbus.attr,
 	&dev_attr_srp.attr,
+	&dev_attr_att2.attr,
 	NULL
 };
 ATTRIBUTE_GROUPS(musb);
@@ -2286,6 +2318,14 @@ static void musb_deassert_reset(struct work_struct *work)
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
 
+static void att2_timer_func(struct timer_list *t)
+{
+    struct musb *musb = from_timer(musb, t, att2_timer);
+
+    musb->att2_state = MUSB_ATT2_WALL;
+    dev_dbg(NULL, "Fired!\n");
+}
+
 /*
  * Perform generic per-controller initialization.
  *
@@ -2323,6 +2363,10 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	musb->min_power = plat->min_power;
 	musb->ops = plat->platform_ops;
 	musb->port_mode = plat->mode;
+
+	/* Setup timer to follow generic_interrupt */
+	/* TODO: take care of timer on remove */
+	timer_setup(&musb->att2_timer, att2_timer_func, 0);
 
 	/*
 	 * Initialize the default IO functions. At least omap2430 needs
