@@ -1,5 +1,6 @@
 #include <sound/orion2-audio.h>
 #include <linux/module.h>
+#include <linux/device.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <sound/soc.h>
@@ -9,25 +10,39 @@
 
 #define ORION2_SPK_AMP_GPIO 205
 
-//! \brief Main device ORION2 Audio structure
-//static struct platform_device *orion2_audio_dev;
+// STILL HACK: Determination of amp presence by checking MPU driver is a terrible solution
+extern struct bus_type i2c_bus_type;
+static int is_codec_amp_control(void)
+{
+  struct device_driver *drv;
+
+  drv = driver_find("inv-mpu6050-i2c", &i2c_bus_type);    // in new Orion2 we have mpu9250 (wich is a part of mpu6050 i2c module)
+  if(drv == NULL)
+  {
+    printk(KERN_DEBUG "Old device\n");
+    return 0;
+  }
+  printk(KERN_DEBUG "New device\n");
+  return 1;
+}
 
 static int orion2_codec_amp_start(struct snd_pcm_substream *substream)
 {
-  int ret = gpio_direction_output(ORION2_SPK_AMP_GPIO, 1);
-  printk(KERN_DEBUG "Amp start gpio...\n");
-  if( ret != 0)
+  if(is_codec_amp_control())
   {
-    printk(KERN_DEBUG "Audio Set gpio err: %d\n", ret);
+    printk(KERN_DEBUG "Amp on\n");
+    gpio_direction_output(ORION2_SPK_AMP_GPIO, 1);
   }
-  printk(KERN_DEBUG "Amp start gpio ok\n");
   return 0;
 }
 
 static void orion2_codec_amp_shutdown(struct snd_pcm_substream *substream)
 {
-  printk(KERN_DEBUG "Amp shutdown gpio...\n");
-  gpio_direction_output(ORION2_SPK_AMP_GPIO, 0);
+  if(is_codec_amp_control())
+  {
+    printk(KERN_DEBUG "Amp off\n");
+    gpio_direction_output(ORION2_SPK_AMP_GPIO, 0);
+  }
 }
 
 static int orion2_audio_hw_params(struct snd_pcm_substream *substream,
@@ -77,14 +92,14 @@ static const struct snd_soc_ops orion2_audio_ops = {
 
 //! \brief Digital audio interface glue - connnects codec <---> CPU
 SND_SOC_DAILINK_DEFS(sound,
-  DAILINK_COMP_ARRAY(COMP_CPU("omap-mcbsp-dai.1")),
+  DAILINK_COMP_ARRAY(COMP_CPU("omap-mcbsp-dai.1")),       // Used from dt
   DAILINK_COMP_ARRAY(COMP_CODEC("twl4030-codec", "twl4030-hifi")),
-  DAILINK_COMP_ARRAY(COMP_PLATFORM("snd_dmaengine_pcm")));
+  DAILINK_COMP_ARRAY(COMP_PLATFORM("omap-pcm-audio")));   // Used from dt and = mcbsp
 
-static struct snd_soc_dai_link orion2_audio_dai_links[] = {
+static struct snd_soc_dai_link orion2_dai[] = {
   {
-    .name = "ORION2 sound",
-    .stream_name = "ORION2 sound",
+    .name = "TPS65951",
+    .stream_name = "TPS65951",
     .ops = &orion2_audio_ops,
     SND_SOC_DAILINK_REG(sound),
   },
@@ -92,8 +107,8 @@ static struct snd_soc_dai_link orion2_audio_dai_links[] = {
 //! \brief Audio machine driver
 static struct snd_soc_card orion2_card = {
   .owner = THIS_MODULE,
-  .dai_link = orion2_audio_dai_links,
-  .num_links = ARRAY_SIZE(orion2_audio_dai_links),
+  .dai_link = orion2_dai,
+  .num_links = ARRAY_SIZE(orion2_dai),
 };
 
 /*! \brief         Probe function for ORION2 Audio driver
@@ -106,7 +121,7 @@ static int orion2_audio_probe(struct platform_device *pdev)
   struct device *device = &pdev->dev;
   struct device_node *node = pdev->dev.of_node;
 
-  printk(KERN_DEBUG "Hello audio");
+
   dev_dbg(device, "probe has been started\n");
   /* \TODO Should init digmic through i2c */
 
@@ -125,11 +140,11 @@ static int orion2_audio_probe(struct platform_device *pdev)
       {
         dev_dbg(device, "card get name %s\n", card->name);
 
-        orion2_audio_dai_links[0].cpus->dai_name  = NULL;
-        orion2_audio_dai_links[0].cpus->of_node = dai_node;
+        orion2_dai[0].cpus->dai_name  = NULL;
+        orion2_dai[0].cpus->of_node = dai_node;
 
-        orion2_audio_dai_links[0].platforms->name  = NULL;
-        orion2_audio_dai_links[0].platforms->of_node = dai_node;
+        orion2_dai[0].platforms->name  = NULL;
+        orion2_dai[0].platforms->of_node = dai_node;
 
         dev_dbg(device, "try to register card\n");
         if( devm_snd_soc_register_card( &pdev->dev, card ) != 0 )

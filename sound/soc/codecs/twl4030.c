@@ -310,10 +310,14 @@ static void twl4030_init_chip(struct snd_soc_component *component)
 		      reg | TWL4030_CNCL_OFFSET_START);
 
   /* Custom Sets for Orion2 */
-  reg = 0x25;
+	reg = twl4030_read(component, TWL4030_REG_MICBIAS_CTL);
+	printk(KERN_DEBUG "TWL4030_REG_MICBIAS_CTL: 0x%X\n", reg);
+  reg |= 0x25;
 	twl4030_write(component, TWL4030_REG_MICBIAS_CTL, reg);
 
-	reg = 0x03;
+  reg = twl4030_read(component, TWL4030_REG_ADCMICSEL);
+  printk(KERN_DEBUG "TWL4030_REG_ADCMICSEL: 0x%X\n", reg);
+	reg |= 0x03;
 	twl4030_write(component, TWL4030_REG_ADCMICSEL, reg);
 
   //printk(KERN_DEBUG "CODEC SET DONE");

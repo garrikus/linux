@@ -56,9 +56,9 @@
 		#pwm-cells = <3>;
 	};
 
-  sound: sound {
+  sound: Orion2 {
     compatible = "orion2-audio";
-    ti,model = "Orion2 Sound";
+    ti,model = "Orion2";
     ti,mcbsp = <&mcbsp2>;
   };
 };
