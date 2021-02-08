@@ -108,7 +108,6 @@ static int orion2_audio_probe(struct platform_device *pdev)
   struct device_node  *node = pdev->dev.of_node;
   struct snd_soc_card *card = &orion2_card;
   struct device_node  *dai_node;
-  int ret = 0;
   u8 pin_mux = 0;
 
   dev_dbg(device, "probe has been started\n");
@@ -153,39 +152,26 @@ static int orion2_audio_probe(struct platform_device *pdev)
     return -ENOMEM;
   }
 
-  if(!of_property_read_u32(node, "amp,gpio", &orion2_dev->amp_gpio))
-  {
+  if(of_property_read_bool(node, "amp-gpio"))
     orion2_dev->amp = true;
-    dev_dbg(device, "Get gpio from dt %d\n", orion2_dev->amp_gpio);
-  }
 
   /* Set TWL4030 GPIO16 as Digimic CLK */
-	ret = twl_i2c_read_u8(TWL4030_MODULE_INTBR, &pin_mux, TWL4030_INTBR_PMBR1);
-  if (ret != 0)
-    dev_err(device, "Get twl4030 err\n");
-  else
-    dev_dbg(device, "Get twl4030 0x%02X\n", pin_mux);
+	if(twl_i2c_read_u8(TWL4030_MODULE_INTBR, &pin_mux, TWL4030_INTBR_PMBR1) != 0)
+    dev_err(device, "Get twl4030 Digimic CLK err\n");
 
 	pin_mux |= (0x3 << 6);
-	ret = twl_i2c_write_u8(TWL4030_MODULE_INTBR, pin_mux, TWL4030_INTBR_PMBR1);
-
-  if (ret != 0)
-    dev_err(device, "Set twl4030 err\n");
-  else
-    dev_dbg(device, "Set twl4030 done\n");
+	if(twl_i2c_write_u8(TWL4030_MODULE_INTBR, pin_mux, TWL4030_INTBR_PMBR1) != 0)
+    dev_err(device, "Set twl4030 Digimic CLK err\n");
 
 /* Set GPIO13 on TWL4030 for MAX98300 Amplifier */
-  ret = twl_i2c_read_u8(TWL4030_MODULE_GPIO, &pin_mux, 0x04);
-  if(ret != 0)
-    dev_err(device, "Get twl4030 err\n");
-  else
-    dev_dbg(device, "TWL4030 GPIO: 0x%02X\n", pin_mux);
-
-  pin_mux |= ( 1 << 5);                    // Set GPIO 13 output
-  ret = twl_i2c_write_u8(TWL4030_MODULE_GPIO, pin_mux, 0x04);
-  if (ret != 0)
+  if(orion2_dev->amp)
   {
-    dev_err(device, "Set tw4030 dir gpio err\n");
+    if(twl_i2c_read_u8(TWL4030_MODULE_GPIO, &pin_mux, 0x04) != 0)
+      dev_err(device, "Get twl4030 GPIO13 direction err\n");
+
+    pin_mux |= ( 1 << 5);                    // Set GPIO 13 output
+    if(twl_i2c_write_u8(TWL4030_MODULE_GPIO, pin_mux, 0x04) != 0)
+      dev_err(device, "Set twl4030 GPIO13 direction err\n");
   }
 
   dev_dbg(device, "probe has been successfully finished\n");

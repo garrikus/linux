@@ -238,105 +238,6 @@ static struct twl4030_codec_data *twl4030_get_pdata(struct snd_soc_component *co
 	return pdata;
 }
 
-/*
- * twl4030 register cache & default register settings
- */
-static const u8 twl4030_reg[0x4B] = {
-	0x00, /* this register not used		*/
-	0x00, /* REG_CODEC_MODE		(0x1)	*/
-	0x00, /* REG_OPTION		(0x2)	*/
-	0x00, /* REG_UNKNOWN		(0x3)	*/
-	0x25, /* REG_MICBIAS_CTL	(0x4)	*/
-	0x00, /* REG_ANAMICL		(0x5)	*/
-	0x00, /* REG_ANAMICR		(0x6)	*/
-	0x00, /* REG_AVADC_CTL		(0x7)	*/
-	0x03, /* REG_ADCMICSEL		(0x8)	*/
-	0x00, /* REG_DIGMIXING		(0x9)	*/
-	0x0f, /* REG_ATXL1PGA		(0xA)	*/
-	0x0f, /* REG_ATXR1PGA		(0xB)	*/
-	0x0f, /* REG_AVTXL2PGA		(0xC)	*/
-	0x0f, /* REG_AVTXR2PGA		(0xD)	*/
-	0x00, /* REG_AUDIO_IF		(0xE)	*/
-	0x00, /* REG_VOICE_IF		(0xF)	*/
-	0x3f, /* REG_ARXR1PGA		(0x10)	*/
-	0x3f, /* REG_ARXL1PGA		(0x11)	*/
-	0x3f, /* REG_ARXR2PGA		(0x12)	*/
-	0x3f, /* REG_ARXL2PGA		(0x13)	*/
-	0x25, /* REG_VRXPGA		(0x14)	*/
-	0x00, /* REG_VSTPGA		(0x15)	*/
-	0x00, /* REG_VRX2ARXPGA		(0x16)	*/
-	0x00, /* REG_AVDAC_CTL		(0x17)	*/
-	0x00, /* REG_ARX2VTXPGA		(0x18)	*/
-	0x32, /* REG_ARXL1_APGA_CTL	(0x19)	*/
-	0x32, /* REG_ARXR1_APGA_CTL	(0x1A)	*/
-	0x32, /* REG_ARXL2_APGA_CTL	(0x1B)	*/
-	0x32, /* REG_ARXR2_APGA_CTL	(0x1C)	*/
-	0x00, /* REG_ATX2ARXPGA		(0x1D)	*/
-	0x00, /* REG_BT_IF		(0x1E)	*/
-	0x55, /* REG_BTPGA		(0x1F)	*/
-	0x00, /* REG_BTSTPGA		(0x20)	*/
-	0x00, /* REG_EAR_CTL		(0x21)	*/
-	0x00, /* REG_HS_SEL		(0x22)	*/
-	0x00, /* REG_HS_GAIN_SET	(0x23)	*/
-	0x00, /* REG_HS_POPN_SET	(0x24)	*/
-	0x00, /* REG_PREDL_CTL		(0x25)	*/
-	0x00, /* REG_PREDR_CTL		(0x26)	*/
-	0x00, /* REG_PRECKL_CTL		(0x27)	*/
-	0x00, /* REG_PRECKR_CTL		(0x28)	*/
-	0x00, /* REG_HFL_CTL		(0x29)	*/
-	0x00, /* REG_HFR_CTL		(0x2A)	*/
-	0x05, /* REG_ALC_CTL		(0x2B)	*/
-	0x00, /* REG_ALC_SET1		(0x2C)	*/
-	0x00, /* REG_ALC_SET2		(0x2D)	*/
-	0x00, /* REG_BOOST_CTL		(0x2E)	*/
-	0x00, /* REG_SOFTVOL_CTL	(0x2F)	*/
-	0x13, /* REG_DTMF_FREQSEL	(0x30)	*/
-	0x00, /* REG_DTMF_TONEXT1H	(0x31)	*/
-	0x00, /* REG_DTMF_TONEXT1L	(0x32)	*/
-	0x00, /* REG_DTMF_TONEXT2H	(0x33)	*/
-	0x00, /* REG_DTMF_TONEXT2L	(0x34)	*/
-	0x79, /* REG_DTMF_TONOFF	(0x35)	*/
-	0x11, /* REG_DTMF_WANONOFF	(0x36)	*/
-	0x00, /* REG_I2S_RX_SCRAMBLE_H	(0x37)	*/
-	0x00, /* REG_I2S_RX_SCRAMBLE_M	(0x38)	*/
-	0x00, /* REG_I2S_RX_SCRAMBLE_L	(0x39)	*/
-	0x06, /* REG_APLL_CTL		(0x3A)	*/
-	0x00, /* REG_DTMF_CTL		(0x3B)	*/
-	0x44, /* REG_DTMF_PGA_CTL2	(0x3C)	*/
-	0x69, /* REG_DTMF_PGA_CTL1	(0x3D)	*/
-	0x00, /* REG_MISC_SET_1		(0x3E)	*/
-	0x00, /* REG_PCMBTMUX		(0x3F)	*/
-	0x00, /* not used		(0x40)	*/
-	0x00, /* not used		(0x41)	*/
-	0x00, /* not used		(0x42)	*/
-	0x00, /* REG_RX_PATH_SEL	(0x43)	*/
-	0x32, /* REG_VDL_APGA_CTL	(0x44)	*/
-	0x00, /* REG_VIBRA_CTL		(0x45)	*/
-	0x00, /* REG_VIBRA_SET		(0x46)	*/
-	0x00, /* REG_VIBRA_PWM_SET	(0x47)	*/
-	0x00, /* REG_ANAMIC_GAIN	(0x48)	*/
-	0x00, /* REG_MISC_SET_2		(0x49)	*/
-	0x00, /* REG_SW_SHADOW		(0x4A)	- Shadow, non HW register */
-};
-
-static void tw4030_check_regs(struct snd_soc_component *component)
-{
-	int i;
-	u8 reg;
-
-	for(i = 1; i < 0x4A; ++i){
-		if (i != 0x03 && i != 0x40 && i != 0x41 && i != 0x42)
-		{
-			reg = twl4030_read(component, i);
-			if(reg != twl4030_reg[i])
-			{
-				printk("Twl403 Register 0x%02X not equal to default\n", i);
-				twl4030_write(component, i, twl4030_reg[i]);
-			}
-		}
-	}
-}
-
 static void twl4030_init_chip(struct snd_soc_component *component)
 {
 	struct twl4030_codec_data *pdata;
@@ -349,7 +250,6 @@ static void twl4030_init_chip(struct snd_soc_component *component)
 	if (pdata && pdata->hs_extmute) {
 		if (gpio_is_valid(pdata->hs_extmute_gpio)) {
 			int ret;
-      printk("Gpio mutes\n");
 			if (!pdata->hs_extmute_gpio)
 				dev_warn(component->dev,
 					"Extmute GPIO is 0 is this correct?\n");
@@ -374,8 +274,6 @@ static void twl4030_init_chip(struct snd_soc_component *component)
 					 TWL4030_PMBR1_REG);
 		}
 	}
-
-	tw4030_check_regs(component);
 
 	/* Initialize the local ctl register cache */
 	tw4030_init_ctl_cache(twl4030);
@@ -414,12 +312,12 @@ static void twl4030_init_chip(struct snd_soc_component *component)
 
   /* Custom Sets for Orion2 */
 	reg = twl4030_read(component, TWL4030_REG_MICBIAS_CTL);
-	printk(KERN_DEBUG "TWL4030_REG_MICBIAS_CTL: 0x%X\n", reg);
+	//printk(KERN_DEBUG "TWL4030_REG_MICBIAS_CTL: 0x%X\n", reg);
   reg |= 0x25;
 	twl4030_write(component, TWL4030_REG_MICBIAS_CTL, reg);
 
   reg = twl4030_read(component, TWL4030_REG_ADCMICSEL);
-  printk(KERN_DEBUG "TWL4030_REG_ADCMICSEL: 0x%X\n", reg);
+  //printk(KERN_DEBUG "TWL4030_REG_ADCMICSEL: 0x%X\n", reg);
 	reg |= 0x03;
 	twl4030_write(component, TWL4030_REG_ADCMICSEL, reg);
 
@@ -2267,8 +2165,6 @@ static struct snd_soc_dai_driver twl4030_dai[] = {
 
 static int twl4030_soc_probe(struct snd_soc_component *component)
 {
-	int i = 0;
-	u8  reg = 0;
 	struct twl4030_priv *twl4030;
 
 	twl4030 = devm_kzalloc(component->dev, sizeof(struct twl4030_priv),
@@ -2280,13 +2176,6 @@ static int twl4030_soc_probe(struct snd_soc_component *component)
 	twl4030->sysclk = twl4030_audio_get_mclk() / 1000;
 
 	twl4030_init_chip(component);
-
-	for(i=1; i < 0x4A; ++i){
-		reg = twl4030_read(component, i);
-		printk(KERN_DEBUG "REG[%d]: 0x%02X\n", i, reg);
-	}
-
-  //printk(KERN_DEBUG "TWL CODEC PROBE");
 
 	return 0;
 }

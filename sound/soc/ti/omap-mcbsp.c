@@ -7,7 +7,6 @@
  * Contact: Jarkko Nikula <jarkko.nikula@bitmer.com>
  *          Peter Ujfalusi <peter.ujfalusi@ti.com>
  */
-#define DEBUG
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -97,7 +96,7 @@ static irqreturn_t omap_mcbsp_irq_handler(int irq, void *data)
 	u16 irqst;
 
 	irqst = MCBSP_READ(mcbsp, IRQST);
-	printk(KERN_DEBUG "ASOC MCBSP IRQ: 0x%X\n", irqst);
+
 	dev_dbg(mcbsp->dev, "IRQ callback : 0x%x\n", irqst);
 
 	if (irqst & RSYNCERREN)
@@ -138,7 +137,6 @@ static irqreturn_t omap_mcbsp_tx_irq_handler(int irq, void *data)
 	struct omap_mcbsp *mcbsp = data;
 	u16 irqst_spcr2;
 
-  printk(KERN_DEBUG "MCBSP IRQ RX\n");
 	irqst_spcr2 = MCBSP_READ(mcbsp, SPCR2);
 	dev_dbg(mcbsp->dev, "TX IRQ callback : 0x%x\n", irqst_spcr2);
 
@@ -157,7 +155,6 @@ static irqreturn_t omap_mcbsp_rx_irq_handler(int irq, void *data)
 	struct omap_mcbsp *mcbsp = data;
 	u16 irqst_spcr1;
 
-  printk(KERN_DEBUG "MCBSP IRQ RX\n");
 	irqst_spcr1 = MCBSP_READ(mcbsp, SPCR1);
 	dev_dbg(mcbsp->dev, "RX IRQ callback : 0x%x\n", irqst_spcr1);
 
@@ -298,7 +295,6 @@ static int omap_mcbsp_request(struct omap_mcbsp *mcbsp)
 	void *reg_cache;
 	int err;
 
-  printk(KERN_DEBUG "MCBSP REQ\n");
 	reg_cache = kzalloc(mcbsp->reg_cache_size, GFP_KERNEL);
 	if (!reg_cache)
 		return -ENOMEM;
@@ -515,7 +511,6 @@ static void omap_mcbsp_stop(struct omap_mcbsp *mcbsp, int stream)
 
 	if (mcbsp->st_data)
 		omap_mcbsp_st_stop(mcbsp);
-	printk(KERN_DEBUG "MCBSP STOP\n");
 }
 
 #define max_thres(m)			(mcbsp->pdata->buffer_size)
@@ -1384,7 +1379,6 @@ static int asoc_mcbsp_probe(struct platform_device *pdev)
 	const struct of_device_id *match;
 	int ret;
 
-  printk(KERN_DEBUG "ASOC MCBSP PROBE");
 	match = of_match_device(omap_mcbsp_of_match, &pdev->dev);
 	if (match) {
 		struct device_node *node = pdev->dev.of_node;
@@ -1403,7 +1397,6 @@ static int asoc_mcbsp_probe(struct platform_device *pdev)
 		if (pdata_quirk)
 			pdata->force_ick_on = pdata_quirk->force_ick_on;
 	} else if (!pdata) {
-		printk(KERN_DEBUG "ASOC MCBSP PROBE ERR 1");
 		dev_err(&pdev->dev, "missing platform data.\n");
 		return -EINVAL;
 	}
@@ -1417,7 +1410,6 @@ static int asoc_mcbsp_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, mcbsp);
 
 	ret = omap_mcbsp_init(pdev);
-	printk(KERN_DEBUG "ASOC MCBSP PROBE AFTER INIT: %d\n", ret);
 	if (ret)
 		return ret;
 
@@ -1430,11 +1422,9 @@ static int asoc_mcbsp_probe(struct platform_device *pdev)
 					      &omap_mcbsp_component,
 					      &omap_mcbsp_dai, 1);
 
-	printk(KERN_DEBUG "ASOC MCBSP PROBE AFTER REGISTER: %d\n", ret);
 	if (ret)
 		return ret;
 
-  printk(KERN_DEBUG "ASOC MCBSP PROBE OK\n");
 	return sdma_pcm_platform_register(&pdev->dev, "tx", "rx");
 }
 

@@ -8,10 +8,8 @@
 #define DEBUG
 /* Structures  */
 struct orion2_audio_dev {
-
   // Amplifier
   bool amp;
-  u32  amp_gpio;
 };
 
 #endif

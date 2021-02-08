@@ -60,7 +60,7 @@
     compatible = "orion2-audio";
     ti,model = "Orion2";
     ti,mcbsp = <&mcbsp2>;
-		amp,gpio = <205>;
+		amp-gpio;    /* Use TWL4030 gpio control for amplifier regulation */
   };
 };
 
