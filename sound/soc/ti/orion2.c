@@ -6,6 +6,9 @@
 #include <sound/soc.h>
 #include <sound/pcm.h>
 #include <linux/gpio.h>
+#include <linux/mfd/twl.h>
+
+#define TWL4030_INTBR_PMBR1 0x0D
 
 static struct orion2_audio_dev *orion2_dev;
 
@@ -13,8 +16,8 @@ static int orion2_codec_amp_start(struct snd_pcm_substream *substream)
 {
   if(orion2_dev->amp)
   {
-    printk(KERN_DEBUG "Amp on\n");
-    gpio_direction_output(orion2_dev->amp_gpio, 1);
+    if(!twl_i2c_write_u8(TWL4030_MODULE_GPIO, (1 << 5), 0x0D)) // TWL4030 GPIO13 Set
+      printk(KERN_DEBUG "Amp on\n");
   }
   return 0;
 }
@@ -23,8 +26,8 @@ static void orion2_codec_amp_shutdown(struct snd_pcm_substream *substream)
 {
   if(orion2_dev->amp)
   {
-    printk(KERN_DEBUG "Amp off\n");
-    gpio_direction_output(orion2_dev->amp_gpio, 0);
+    if(!twl_i2c_write_u8(TWL4030_MODULE_GPIO, (1 << 5), 0x0A))  // TWL4030 GPIO13 Clear
+      printk(KERN_DEBUG "Amp off\n");
   }
 }
 
@@ -105,10 +108,10 @@ static int orion2_audio_probe(struct platform_device *pdev)
   struct device_node  *node = pdev->dev.of_node;
   struct snd_soc_card *card = &orion2_card;
   struct device_node  *dai_node;
+  int ret = 0;
+  u8 pin_mux = 0;
 
   dev_dbg(device, "probe has been started\n");
-
-   /* \TODO Should init digmic through i2c */
 
   if (!node)
   {
@@ -156,6 +159,35 @@ static int orion2_audio_probe(struct platform_device *pdev)
     dev_dbg(device, "Get gpio from dt %d\n", orion2_dev->amp_gpio);
   }
 
+  /* Set TWL4030 GPIO16 as Digimic CLK */
+	ret = twl_i2c_read_u8(TWL4030_MODULE_INTBR, &pin_mux, TWL4030_INTBR_PMBR1);
+  if (ret != 0)
+    dev_err(device, "Get twl4030 err\n");
+  else
+    dev_dbg(device, "Get twl4030 0x%02X\n", pin_mux);
+
+	pin_mux |= (0x3 << 6);
+	ret = twl_i2c_write_u8(TWL4030_MODULE_INTBR, pin_mux, TWL4030_INTBR_PMBR1);
+
+  if (ret != 0)
+    dev_err(device, "Set twl4030 err\n");
+  else
+    dev_dbg(device, "Set twl4030 done\n");
+
+/* Set GPIO13 on TWL4030 for MAX98300 Amplifier */
+  ret = twl_i2c_read_u8(TWL4030_MODULE_GPIO, &pin_mux, 0x04);
+  if(ret != 0)
+    dev_err(device, "Get twl4030 err\n");
+  else
+    dev_dbg(device, "TWL4030 GPIO: 0x%02X\n", pin_mux);
+
+  pin_mux |= ( 1 << 5);                    // Set GPIO 13 output
+  ret = twl_i2c_write_u8(TWL4030_MODULE_GPIO, pin_mux, 0x04);
+  if (ret != 0)
+  {
+    dev_err(device, "Set tw4030 dir gpio err\n");
+  }
+
   dev_dbg(device, "probe has been successfully finished\n");
   return 0;
 
@@ -185,7 +217,7 @@ MODULE_DEVICE_TABLE(of, orion2_audio_of_match);
 static struct platform_driver orion2_audio_driver =
 {
   .driver = {
-    .name = ORION_DRIVER_NAME,
+    .name = "orion2-audio",
 #ifdef CONFIG_OF
     .of_match_table = orion2_audio_of_match,
 #endif
