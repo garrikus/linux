@@ -150,6 +150,15 @@
 	};
 };
 
+&i2c3 {
+	status = "okay";
+
+	bq27510g2: fuel-gauge@55 {
+		compatible = "ti,bq27510g2";
+		reg = <0x55>;
+	};
+};
+
 #include "twl4030.dtsi"
 /* #include "twl4030_omap3.dtsi" */
 
