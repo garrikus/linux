@@ -14,7 +14,8 @@ static struct orion2_audio_dev *orion2_dev;
 
 static int orion2_codec_amp_start(struct snd_pcm_substream *substream)
 {
-  if(orion2_dev->amp)
+  printk(KERN_DEBUG "Stream direction: %s\n", snd_pcm_stream_str(substream) );
+  if( (orion2_dev->amp) && (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) )
   {
     if(!twl_i2c_write_u8(TWL4030_MODULE_GPIO, (1 << 5), 0x0D)) // TWL4030 GPIO13 Set
       printk(KERN_DEBUG "Amp on\n");
@@ -24,7 +25,8 @@ static int orion2_codec_amp_start(struct snd_pcm_substream *substream)
 
 static void orion2_codec_amp_shutdown(struct snd_pcm_substream *substream)
 {
-  if(orion2_dev->amp)
+  printk(KERN_DEBUG "Stream direction: %s\n", snd_pcm_stream_str(substream) );
+  if( (orion2_dev->amp) && (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) )
   {
     if(!twl_i2c_write_u8(TWL4030_MODULE_GPIO, (1 << 5), 0x0A))  // TWL4030 GPIO13 Clear
       printk(KERN_DEBUG "Amp off\n");
@@ -156,6 +158,18 @@ static int orion2_audio_probe(struct platform_device *pdev)
     orion2_dev->amp = true;
 
   /* Set TWL4030 GPIO16 as Digimic CLK */
+  pin_mux = (1 << 1);
+  if(twl_i2c_write_u8(TWL4030_MODULE_AUDIO_VOICE, pin_mux, 0x01) != 0)
+      dev_err(device, "Set twl4030 AUDIO_VOICE err\n");
+
+  pin_mux = (1 << 0) | (1 << 5);
+  if(twl_i2c_write_u8(TWL4030_MODULE_AUDIO_VOICE, pin_mux, 0x04) != 0)
+    dev_err(device, "Set twl4030 MICBIAS_CTL err\n");
+
+  pin_mux = (0x03 << 0); // offset 0 - Mic 0 , offset 2 - Mic 1
+  if(twl_i2c_write_u8(TWL4030_MODULE_AUDIO_VOICE, pin_mux, 0x08) != 0)
+    dev_err(device, "Set twl4030 ADCMICSEL err\n");
+
 	if(twl_i2c_read_u8(TWL4030_MODULE_INTBR, &pin_mux, TWL4030_INTBR_PMBR1) != 0)
     dev_err(device, "Get twl4030 Digimic CLK err\n");
 
