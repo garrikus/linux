@@ -219,5 +219,13 @@ config SND_SOC_DM365_VOICE_CODEC_MODULE
 	  The is an internal symbol needed to ensure that the codec
 	  and MFD driver can be built as loadable modules if necessary.
 
-endmenu
 
+config SND_SOC_ORION2_AUDIO
+	tristate "SoC Audio for ORION2 board"
+	depends on TWL4030_CORE
+	select SND_SOC_OMAP_MCBSP
+	select SND_SOC_TWL4030
+	help
+		Say Y if you want to add support for SoC Audio for ORION2 board
+
+endmenu
