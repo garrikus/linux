@@ -56,16 +56,16 @@
 		#pwm-cells = <3>;
 	};
 
-  sound: Orion2 {
-    compatible = "orion2-audio";
-    ti,model = "Orion2";
-    ti,mcbsp = <&mcbsp2>;
+	sound: Orion2 {
+		compatible = "orion2-audio";
+		ti,model = "Orion2";
+		ti,mcbsp = <&mcbsp2>;
 		amp-gpio;    /* Use TWL4030 gpio control for amplifier regulation */
-  };
+	};
 };
 
 &mcbsp2{
-  status = "ok";
+	status = "ok";
 };
 
 &omap3_pmx_core {
@@ -108,12 +108,12 @@
 			ti,use_poweroff;
 		};
 
-    twl_audio: audio {
-      compatible = "ti,twl4030-audio";
-      ti,enable-vibra = <0>;
-      codec {
-      };
-    };
+		twl_audio: audio {
+			compatible = "ti,twl4030-audio";
+			ti,enable-vibra = <0>;
+			codec {
+			};
+		};
 	};
 };
 

@@ -3,13 +3,10 @@
 
 #include <linux/types.h>
 
-/* MACRO */
-//! \brief Driver name
 #define DEBUG
-/* Structures  */
+
 struct orion2_audio_dev {
-  // Amplifier
-  bool amp;
+	bool amp;
 };
 
 #endif

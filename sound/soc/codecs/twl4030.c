@@ -61,8 +61,6 @@ struct twl4030_priv {
 	struct twl4030_codec_data *pdata;
 };
 
-
-
 static void tw4030_init_ctl_cache(struct twl4030_priv *twl4030)
 {
 	int i;
@@ -250,6 +248,7 @@ static void twl4030_init_chip(struct snd_soc_component *component)
 	if (pdata && pdata->hs_extmute) {
 		if (gpio_is_valid(pdata->hs_extmute_gpio)) {
 			int ret;
+
 			if (!pdata->hs_extmute_gpio)
 				dev_warn(component->dev,
 					"Extmute GPIO is 0 is this correct?\n");
@@ -2180,7 +2179,7 @@ static void twl4030_soc_remove(struct snd_soc_component *component)
 static const struct snd_soc_component_driver soc_component_dev_twl4030 = {
 	.probe			= twl4030_soc_probe,
 	.remove			= twl4030_soc_remove,
-	.read			  = twl4030_read,
+	.read			= twl4030_read,
 	.write			= twl4030_write,
 	.set_bias_level		= twl4030_set_bias_level,
 	.controls		= twl4030_snd_controls,
@@ -2196,7 +2195,6 @@ static const struct snd_soc_component_driver soc_component_dev_twl4030 = {
 
 static int twl4030_codec_probe(struct platform_device *pdev)
 {
-	//printk(KERN_DEBUG "CODEC PROBE");
 	return devm_snd_soc_register_component(&pdev->dev,
 				      &soc_component_dev_twl4030,
 				      twl4030_dai, ARRAY_SIZE(twl4030_dai));

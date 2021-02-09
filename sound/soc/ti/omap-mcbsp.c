@@ -7,6 +7,7 @@
  * Contact: Jarkko Nikula <jarkko.nikula@bitmer.com>
  *          Peter Ujfalusi <peter.ujfalusi@ti.com>
  */
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -96,7 +97,6 @@ static irqreturn_t omap_mcbsp_irq_handler(int irq, void *data)
 	u16 irqst;
 
 	irqst = MCBSP_READ(mcbsp, IRQST);
-
 	dev_dbg(mcbsp->dev, "IRQ callback : 0x%x\n", irqst);
 
 	if (irqst & RSYNCERREN)
@@ -1421,7 +1421,6 @@ static int asoc_mcbsp_probe(struct platform_device *pdev)
 	ret = devm_snd_soc_register_component(&pdev->dev,
 					      &omap_mcbsp_component,
 					      &omap_mcbsp_dai, 1);
-
 	if (ret)
 		return ret;
 
