@@ -1008,6 +1008,13 @@ static void musb_handle_intr_reset(struct musb *musb)
 	} else {
 		musb_dbg(musb, "BUS RESET as %s",
 			usb_otg_state_string(musb->xceiv->otg->state));
+
+		/* Reset without a gadget driver means we only want to
+		 * figure charger type. Leave as soon as possible.
+		 */
+		if (musb->gadget_driver == NULL)
+			return;
+
 		switch (musb->xceiv->otg->state) {
 		case OTG_STATE_A_SUSPEND:
 			musb_g_reset(musb);
@@ -1158,8 +1165,8 @@ static void musb_disable_interrupts(struct musb *musb)
 {
 	void __iomem	*mbase = musb->mregs;
 
-	/* disable interrupts */
-	musb_writeb(mbase, MUSB_INTRUSBE, 0);
+	/* disable interrupts, but keep reset, so we can tell wall charger from host */
+	musb_writeb(mbase, MUSB_INTRUSBE, 0 | MUSB_INTR_RESET);
 	musb->intrtxe = 0;
 	musb_writew(mbase, MUSB_INTRTXE, 0);
 	musb->intrrxe = 0;
