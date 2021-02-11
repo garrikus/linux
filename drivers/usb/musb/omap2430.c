@@ -131,8 +131,18 @@ static void omap_musb_set_mailbox(struct omap2430_glue *glue)
 	case MUSB_VBUS_VALID:
 		dev_dbg(musb->controller, "VBUS Connect\n");
 
-		musb->att2_state = MUSB_ATT2_HOST;
-		mod_timer(&musb->att2_timer, jiffies + msecs_to_jiffies(1000));
+		if (musb->att2_state == MUSB_ATT2_NONE) {
+			dev_dbg(musb->controller, "Already connected: %d\n", musb->att2_state);
+			musb->att2_state = MUSB_ATT2_HOST;
+			mod_timer(&musb->att2_timer, jiffies + msecs_to_jiffies(1000));
+
+		} else {
+			/* Not none-connected? Most likely RESET interrupt proccessing
+			 * was scheduled before phy events processing. Don't do
+			 * anything, be sure to kill useless (inactive) timer.
+			 */
+			del_timer(&musb->att2_timer);
+		}
 
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		musb->xceiv->last_event = USB_EVENT_VBUS;
@@ -143,6 +153,7 @@ static void omap_musb_set_mailbox(struct omap2430_glue *glue)
 	case MUSB_VBUS_OFF:
 		dev_dbg(musb->controller, "VBUS Disconnect\n");
 
+		/* No matter what -- we're disconnected and none-connected therefore */
 		del_timer(&musb->att2_timer);
 		musb->att2_state = MUSB_ATT2_NONE;
 
@@ -182,11 +193,8 @@ static irqreturn_t omap2430_musb_interrupt(int irq, void *__hci)
 	musb->int_tx = musb_readw(musb->mregs, MUSB_INTRTX);
 	musb->int_rx = musb_readw(musb->mregs, MUSB_INTRRX);
 
-	if (musb->int_usb || musb->int_tx || musb->int_rx) {
-		del_timer(&musb->att2_timer);
-		musb->att2_state = MUSB_ATT2_HOST;
+	if (musb->int_usb || musb->int_tx || musb->int_rx)
 		retval = musb_interrupt(musb);
-	}
 
 	spin_unlock_irqrestore(&musb->lock, flags);
 

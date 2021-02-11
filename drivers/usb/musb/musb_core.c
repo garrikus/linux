@@ -1008,6 +1008,12 @@ static void musb_handle_intr_reset(struct musb *musb)
 	} else {
 		musb_dbg(musb, "BUS RESET as %s",
 			usb_otg_state_string(musb->xceiv->otg->state));
+		dev_dbg(musb->controller, "BUS RESET: as %s",
+			usb_otg_state_string(musb->xceiv->otg->state));
+
+		/* No matter what -- RESET is a reason to consider ourselves host-connected */
+		del_timer(&musb->att2_timer);
+		musb->att2_state = MUSB_ATT2_HOST;
 
 		/* Reset without a gadget driver means we only want to
 		 * figure charger type. Leave as soon as possible.
