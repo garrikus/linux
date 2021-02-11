@@ -64,6 +64,10 @@
 	};
 };
 
+&uart2 {
+	wakeup-source;
+};
+
 &mcbsp2{
 	status = "ok";
 };
@@ -140,6 +144,7 @@
 		keypad,num-rows = <8>;
 		keypad,num-columns = <10>;
 		keypad,autorepeat;
+		wakeup-source;
 	};
 
 	mpu: mpu9250@68 {
