@@ -100,7 +100,7 @@ static void omap_musb_set_mailbox(struct omap2430_glue *glue)
 		devctl);
 
 	/* Anything but a stable VBUS is a reason to stop charging */
-	if (devctl & MUSB_DEVCTL_VBUS != MUSB_DEVCTL_VBUS) {
+	if ((devctl & MUSB_DEVCTL_VBUS) != MUSB_DEVCTL_VBUS) {
 		del_timer(&musb->att2_timer);
 		musb->att2_state = MUSB_ATT2_NONE;
 	}
