@@ -84,6 +84,14 @@ enum musb_g_ep0_state {
 	MUSB_EP0_STAGE_ACKWAIT,		/* after zlp, before statusin */
 } __attribute__ ((packed));
 
+/* Helps telling host from wall charger */
+enum musb_attached2_state {
+    MUSB_ATT2_NONE,         /* Disconnected */
+    MUSB_ATT2_SLAVE,        /* We are the host */
+    MUSB_ATT2_HOST,         /* Attached to HOST */
+    MUSB_ATT2_WALL,         /* Attached to wall-charger */
+} __attribute__((packed));
+
 /*
  * OTG protocol constants.  See USB OTG 1.3 spec,
  * sections 5.5 "Device Timings" and 6.6.5 "Timers".
@@ -415,6 +423,9 @@ struct musb {
 #ifdef CONFIG_DEBUG_FS
 	struct dentry		*debugfs_root;
 #endif
+    /* Telling host from wall support */
+    struct timer_list att2_timer;
+    enum musb_attached2_state  att2_state;
 };
 
 /* This must be included after struct musb is defined */

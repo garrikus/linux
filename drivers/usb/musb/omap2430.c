@@ -88,12 +88,21 @@ static void omap_musb_set_mailbox(struct omap2430_glue *glue)
 {
 	struct musb *musb = glue_to_musb(glue);
 	int error;
+	u8 devctl;
 
 	pm_runtime_get_sync(musb->controller);
 
+	devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 	dev_dbg(musb->controller, "VBUS %s, devctl %02x\n",
 		usb_otg_state_string(musb->xceiv->otg->state),
-		musb_readb(musb->mregs, MUSB_DEVCTL));
+		devctl);
+
+	/* Anything but a stable VBUS is a reason to stop charging */
+	if ((devctl & MUSB_DEVCTL_VBUS) != MUSB_DEVCTL_VBUS) {
+		del_timer(&musb->att2_timer);
+		musb->att2_state = MUSB_ATT2_NONE;
+	}
+
 
 	switch (glue->status) {
 	case MUSB_ID_GROUND:
@@ -128,6 +137,19 @@ static void omap_musb_set_mailbox(struct omap2430_glue *glue)
 
 	case MUSB_VBUS_VALID:
 		dev_dbg(musb->controller, "VBUS Connect\n");
+
+		if (musb->att2_state == MUSB_ATT2_NONE) {
+			dev_dbg(musb->controller, "Already connected: %d\n", musb->att2_state);
+			musb->att2_state = MUSB_ATT2_HOST;
+			mod_timer(&musb->att2_timer, jiffies + msecs_to_jiffies(1000));
+
+		} else {
+			/* Not none-connected? Most likely RESET interrupt proccessing
+			 * was scheduled before phy events processing. Don't do
+			 * anything, be sure to kill useless (inactive) timer.
+			 */
+			del_timer(&musb->att2_timer);
+		}
 
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		musb->xceiv->last_event = USB_EVENT_VBUS;

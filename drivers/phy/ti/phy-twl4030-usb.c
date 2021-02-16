@@ -266,6 +266,22 @@ static bool twl4030_is_driving_vbus(struct twl4030_usb *twl)
 	return (ret & (ULPI_OTG_DRVVBUS | ULPI_OTG_CHRGVBUS)) ? true : false;
 }
 
+static enum usb_phy_events phy_event_from_id_status(enum musb_vbus_id_status linkstat)
+{
+	enum usb_phy_events trans_table[] = {
+		[MUSB_UNKNOWN] = USB_EVENT_NONE,
+		[MUSB_ID_GROUND] = USB_EVENT_ID,
+		[MUSB_ID_FLOAT] = USB_EVENT_NONE,
+		[MUSB_VBUS_VALID] = USB_EVENT_VBUS,
+		[MUSB_VBUS_OFF] = USB_EVENT_NONE,
+	};
+
+	if (sizeof(trans_table)/sizeof(trans_table[0]) <= linkstat)
+		BUG();
+
+	return trans_table[linkstat];
+};
+
 static enum musb_vbus_id_status
 	twl4030_usb_linkstat(struct twl4030_usb *twl)
 {
