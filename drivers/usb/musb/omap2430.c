@@ -8,8 +8,6 @@
  *
  * This file is part of the Inventra Controller Driver for Linux.
  */
-#define DEBUG
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>

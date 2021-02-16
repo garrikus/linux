@@ -11,8 +11,6 @@
  *	- 3-pin mode support may be added in future.
  */
 
-#define DEBUG
-
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
