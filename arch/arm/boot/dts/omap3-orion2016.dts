@@ -69,10 +69,10 @@
 		ti,mcbsp = <&mcbsp2>;
 		amp-gpio;    /* Use TWL4030 gpio control for amplifier regulation */
 	};
-};
 
-&uart2 {
-	wakeup-source;
+	orion_gpio_uart_pinmux: orion-gpio-uart-pinmux {
+		compatible = "orion-gpio-uart-pinmux";
+	};
 };
 
 &mcbsp2{
@@ -80,7 +80,26 @@
 };
 
 &omap3_pmx_core {
-	pinctrl-use-default; /* X-Loader has muxed the pins. Let them be. */
+	pinctrl-use-default;/*  X-Loader has muxed the pins. Let them be.*/
+	/*uart2_pins: pinmux_uart2_pins {
+		pinctrl-single,pins = <
+		  OMAP3_CORE1_IOPAD(0x2170, PIN_OUTPUT | MUX_MODE1)
+			OMAP3_CORE1_IOPAD(0x2172, WAKEUP_EN | PIN_INPUT | MUX_MODE1)
+			>;
+	};*/
+};
+
+&uart1 {
+	interrupts-extended = <&intc 72 &omap3_pmx_core OMAP3_UART1_RX>;
+};
+
+&uart2 {
+	interrupts-extended = <&intc 73 &omap3_pmx_core OMAP3_UART2_RX>;
+	/*pinctrl-0 = <&uart2_pins>;*/
+};
+
+&uart3 {
+	interrupts-extended = <&intc 74 &omap3_pmx_core OMAP3_UART3_RX>;
 };
 
 &gpio2 {
