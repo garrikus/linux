@@ -18,16 +18,14 @@
 
 static int gpio_uart_pinmux_probe(struct platform_device *pdev)
 {
-  u16 reg = 0;
+//  u16 reg = 0;
 
   printk("GPIO UART PINMUX PROBE BGN\n");
 
-  printk("GPIO UART PINMUX PROBE BGN\n");
-
-  reg = readw(0x48002170);
+  /*reg = readw(0x48002170);
   printk("REG: 0x04X\n", reg);
   reg = readw(0x48002172);
-  printk("REG: 0x04X\n", reg);
+  printk("REG: 0x04X\n", reg);*/
 
   printk("GPIO UART PINMUX PROBE END\n");
   return 0;

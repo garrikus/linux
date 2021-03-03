@@ -80,13 +80,7 @@
 };
 
 &omap3_pmx_core {
-	pinctrl-use-default;/*  X-Loader has muxed the pins. Let them be.*/
-	/*uart2_pins: pinmux_uart2_pins {
-		pinctrl-single,pins = <
-		  OMAP3_CORE1_IOPAD(0x2170, PIN_OUTPUT | MUX_MODE1)
-			OMAP3_CORE1_IOPAD(0x2172, WAKEUP_EN | PIN_INPUT | MUX_MODE1)
-			>;
-	};*/
+	pinctrl-use-default;
 };
 
 &uart1 {
@@ -95,7 +89,6 @@
 
 &uart2 {
 	interrupts-extended = <&intc 73 &omap3_pmx_core OMAP3_UART2_RX>;
-	/*pinctrl-0 = <&uart2_pins>;*/
 };
 
 &uart3 {
