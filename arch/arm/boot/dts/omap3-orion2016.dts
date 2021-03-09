@@ -72,9 +72,9 @@
 
 	orion_gpio_uart_pinmux: gu-pinmux {
 		compatible = "orion-gu-pinmux";
-		/*interrupt-parent = <&gpio5>;
-		interrupts = <(147-128) IRQ_TYPE_EDGE_BOTH>;
-		wakeup-source;*/
+		interrupt-parent = <&gpio5>;
+		interrupts = <(143-128) IRQ_TYPE_EDGE_BOTH>;
+		wakeup-source;
 	};
 };
 
