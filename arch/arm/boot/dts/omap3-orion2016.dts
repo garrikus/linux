@@ -82,27 +82,6 @@
 	status = "ok";
 };
 
-&omap3_pmx_core {
-	/*gpio_uart_rx: pinmux_gpio_uart_rx {
-		pinctrl-single,pins = <
-			OMAP3_CORE1_IOPAD(0x2178, PIN_OUTPUT | MUX_MODE0)
-			OMAP3_CORE1_IOPAD(0x217A, PIN_INPUT | MUX_MODE0)
-		>;
-	};*/
-};
-/*
-&uart1 {
-	interrupts-extended = <&intc 72 &omap3_pmx_core OMAP3_UART1_RX>;
-};*/
-/*
-&uart2 {
-	interrupts-extended = <&intc 73 &omap3_pmx_core 0x142>;
-};*/
-/*
-&uart3 {
-	interrupts-extended = <&intc 74 &omap3_pmx_core OMAP3_UART3_RX>;
-};*/
-
 &gpio2 {
 	rs232_forced_on {
 		gpio-hog;
