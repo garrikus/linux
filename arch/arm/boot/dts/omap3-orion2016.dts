@@ -69,18 +69,17 @@
 		ti,mcbsp = <&mcbsp2>;
 		amp-gpio;    /* Use TWL4030 gpio control for amplifier regulation */
 	};
-};
 
-&uart2 {
-	wakeup-source;
+	orion_gpio_uart_pinmux: gu-pinmux {
+		compatible = "orion-gu-pinmux";
+		interrupt-parent = <&gpio5>;
+		interrupts = <(143-128) IRQ_TYPE_EDGE_BOTH>;
+		wakeup-source;
+	};
 };
 
 &mcbsp2{
 	status = "ok";
-};
-
-&omap3_pmx_core {
-	pinctrl-use-default; /* X-Loader has muxed the pins. Let them be. */
 };
 
 &gpio2 {
@@ -95,6 +94,10 @@
 		gpios = <(39-32) GPIO_ACTIVE_HIGH>;	/* gpio_39 (address in gpio2) */
 		output-high;
 	};
+};
+
+&gpio5 {
+	ti,gpio-always-on;
 };
 
 &gpio6 {
