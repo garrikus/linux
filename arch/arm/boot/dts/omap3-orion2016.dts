@@ -82,6 +82,10 @@
 	status = "ok";
 };
 
+&omap3_pmx_core {
+	pinctrl-use-default; /* X-Loader has muxed the pins. Let them be. */
+};
+
 &gpio2 {
 	rs232_forced_on {
 		gpio-hog;
