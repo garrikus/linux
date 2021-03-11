@@ -78,6 +78,11 @@
 	};
 };
 
+&uart3 {
+	wakeup-source;
+	interrupts-extended = <&intc 74 &omap3_pmx_core OMAP3_UART3_RX>;
+};
+
 &mcbsp2{
 	status = "ok";
 };
