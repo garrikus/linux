@@ -5,6 +5,8 @@ SUBLEVEL = 0
 EXTRAVERSION =
 NAME = Kleptomaniac Octopus
 
+BTD_ID="-AB"
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
@@ -337,7 +339,8 @@ include scripts/Kbuild.include
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
 KERNELRELEASE = $(shell cat include/config/kernel.release 2> /dev/null)
 KERNELVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
-export VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION
+BTDRELEASE = $(shell cat include/config/btd.release 2> /dev/null)
+export VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION BTDRELEASE
 
 include scripts/subarch.include
 
@@ -1125,6 +1128,12 @@ filechk_kernel.release = \
 include/config/kernel.release: FORCE
 	$(call filechk,kernel.release)
 
+filechk_btd.release = \
+	echo "$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion $(srctree)|awk -F- '{if (NF==3){ print "-"$$NF;}else{print "-"$$(NF-1)"-"$$(NF);}};')$(BTD_ID)"
+
+include/config/btd.release: FORCE
+	$(call filechk,btd.release)
+
 # Additional helpers built in scripts/
 # Carefully list dependencies so we do not try to build scripts twice
 # in parallel
@@ -1141,7 +1150,8 @@ scripts: scripts_basic scripts_dtc
 PHONY += prepare archprepare
 
 archprepare: outputmakefile archheaders archscripts scripts include/config/kernel.release \
-	asm-generic $(version_h) $(autoksyms_h) include/generated/utsrelease.h
+	asm-generic $(version_h) $(autoksyms_h) include/generated/utsrelease.h \
+	include/generated/btdrelease.h
 
 prepare0: archprepare
 	$(Q)$(MAKE) $(build)=scripts/mod
@@ -1193,12 +1203,19 @@ define filechk_version.h
 	echo '#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))'
 endef
 
+define filechk_btdrelease.h
+	(echo \#define BTD_RELEASE \"$(BTDRELEASE)\";)
+endef
+
 $(version_h): FORCE
 	$(call filechk,version.h)
 	$(Q)rm -f $(old_version_h)
 
 include/generated/utsrelease.h: include/config/kernel.release FORCE
 	$(call filechk,utsrelease.h)
+
+include/generated/btdrelease.h: include/config/btd.release FORCE
+	$(call filechk,btdrelease.h)
 
 PHONY += headerdep
 headerdep:

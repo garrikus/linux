@@ -845,6 +845,7 @@ asmlinkage __visible void __init start_kernel(void)
 	 */
 	boot_cpu_init();
 	page_address_init();
+	pr_alert("%s", btd_banner);
 	pr_notice("%s", linux_banner);
 	early_security_init();
 	setup_arch(&command_line);
