@@ -120,6 +120,8 @@ enum bq27xxx_reg_index {
 	BQ27XXX_DM_BLOCK,	/* Data Block */
 	BQ27XXX_DM_DATA,	/* Block Data */
 	BQ27XXX_DM_CKSUM,	/* Block Data Checksum */
+	BQ27XXX_REG_FAC,        /* Full Available Capacity */
+	BQ27XXX_REG_RCAP,       /* Remaining capacity */
 	BQ27XXX_REG_MAX,	/* sentinel */
 };
 
@@ -222,8 +224,29 @@ static u8
 		[BQ27XXX_REG_AP] = 0x24,
 		BQ27XXX_DM_REG_ROWS,
 	},
+	bq27510g2_regs[BQ27XXX_REG_MAX] = {
+		[BQ27XXX_REG_CTRL] = 0x00,
+		[BQ27XXX_REG_TEMP] = 0x06,
+		[BQ27XXX_REG_INT_TEMP] = INVALID_REG_ADDR,
+		[BQ27XXX_REG_VOLT] = 0x08,
+		[BQ27XXX_REG_AI] = 0x14,
+		[BQ27XXX_REG_FLAGS] = 0x0a,
+		[BQ27XXX_REG_TTE] = 0x16,
+		[BQ27XXX_REG_TTF] = 0x18,
+		[BQ27XXX_REG_TTES] = 0x1c,
+		[BQ27XXX_REG_TTECP] = 0x26,
+		[BQ27XXX_REG_NAC] = 0x0c,
+		[BQ27XXX_REG_FCC] = 0x12,
+		[BQ27XXX_REG_CYCT] = 0x2a,
+		[BQ27XXX_REG_AE] = 0x22,
+		[BQ27XXX_REG_SOC] = 0x2c,
+		[BQ27XXX_REG_DCAP] = 0x3c,
+		[BQ27XXX_REG_AP] = 0x24,
+		BQ27XXX_DM_REG_ROWS,
+		[BQ27XXX_REG_FAC] = 0x0e,
+		[BQ27XXX_REG_RCAP] = 0x10,
+	},
 #define bq27510g1_regs bq27500_regs
-#define bq27510g2_regs bq27500_regs
 	bq27510g3_regs[BQ27XXX_REG_MAX] = {
 		[BQ27XXX_REG_CTRL] = 0x00,
 		[BQ27XXX_REG_TEMP] = 0x06,
@@ -505,7 +528,28 @@ static enum power_supply_property bq27500_props[] = {
 	POWER_SUPPLY_PROP_MANUFACTURER,
 };
 #define bq27510g1_props bq27500_props
-#define bq27510g2_props bq27500_props
+static enum power_supply_property bq27510g2_props[] = {
+	POWER_SUPPLY_PROP_STATUS,
+	POWER_SUPPLY_PROP_PRESENT,
+	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+	POWER_SUPPLY_PROP_CURRENT_NOW,
+	POWER_SUPPLY_PROP_CAPACITY,
+	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
+	POWER_SUPPLY_PROP_TEMP,
+	POWER_SUPPLY_PROP_TIME_TO_EMPTY_NOW,
+	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
+	POWER_SUPPLY_PROP_TECHNOLOGY,
+	POWER_SUPPLY_PROP_CHARGE_FULL,
+	POWER_SUPPLY_PROP_CHARGE_NOW,
+	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+	POWER_SUPPLY_PROP_CYCLE_COUNT,
+	POWER_SUPPLY_PROP_ENERGY_NOW,
+	POWER_SUPPLY_PROP_POWER_AVG,
+	POWER_SUPPLY_PROP_HEALTH,
+	POWER_SUPPLY_PROP_MANUFACTURER,
+	POWER_SUPPLY_PROP_CHARGE_FULL_AVAIL,
+	POWER_SUPPLY_PROP_CHARGE_REMAINING,
+};
 
 static enum power_supply_property bq27510g3_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
@@ -1395,6 +1439,16 @@ static inline int bq27xxx_battery_read_fcc(struct bq27xxx_device_info *di)
 	return bq27xxx_battery_read_charge(di, BQ27XXX_REG_FCC);
 }
 
+static inline int bq27xxx_battery_read_fac(struct bq27xxx_device_info *di)
+{
+	return bq27xxx_battery_read_charge(di, BQ27XXX_REG_FAC);
+}
+
+static inline int bq27xxx_battery_read_rcap(struct bq27xxx_device_info *di)
+{
+	return bq27xxx_battery_read_charge(di, BQ27XXX_REG_RCAP);
+}
+
 /*
  * Return the Design Capacity in µAh
  * Or < 0 if something fails.
@@ -1818,6 +1872,12 @@ static int bq27xxx_battery_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		ret = bq27xxx_simple_value(di->charge_design_full, val);
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL_AVAIL:
+		ret = bq27xxx_simple_value(bq27xxx_battery_read_fac(di), val);
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_REMAINING:
+		ret = bq27xxx_simple_value(bq27xxx_battery_read_rcap(di), val);
 		break;
 	/*
 	 * TODO: Implement these to make registers set from
