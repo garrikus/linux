@@ -434,9 +434,9 @@ static int __maybe_unused twl4030_usb_runtime_suspend(struct device *dev)
 	dev_dbg(twl->dev, "%s\n", __func__);
 
 	__twl4030_phy_power(twl, 0);
-	regulator_disable(twl->usb1v5);
-	regulator_disable(twl->usb1v8);
-	regulator_disable(twl->usb3v1);
+	regulator_force_disable(twl->usb1v5);
+	regulator_force_disable(twl->usb1v8);
+	regulator_force_disable(twl->usb3v1);
 
 	return 0;
 }
