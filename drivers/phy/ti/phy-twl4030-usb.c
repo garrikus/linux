@@ -366,32 +366,60 @@ static void __twl4030_phy_power(struct twl4030_usb *twl, int on)
 	WARN_ON(twl4030_usb_write_verify(twl, PHY_PWR_CTRL, pwr) < 0);
 }
 
+#define USB_STATE_OFF    0x00
+#define USB_STATE_ACTIVE 0x0E
+#define USB_GET_STATE(state) (state & 0xF0)
+
 static int twl4030_usb_stop(struct twl4030_usb *twl)
 {
+        uint8_t state = 0;
 	dev_dbg(twl->dev, "%s\n", __func__);
 
 	__twl4030_phy_power(twl, 0);
-	regulator_disable(twl->usb1v5);
-	regulator_disable(twl->usb1v8);
-	regulator_disable(twl->usb3v1);
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB1V5_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_ACTIVE )
+	    regulator_disable(twl->usb1v5);
+
+	
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB1V8_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_ACTIVE )
+	    regulator_disable(twl->usb1v8);
+
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB3V1_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_ACTIVE )
+	    regulator_disable(twl->usb3v1);
 
 	return 0;
 }
 
 static int twl4030_usb_run(struct twl4030_usb *twl)
 {
+        uint8_t state = 0;
 	int res;
 
 	dev_dbg(twl->dev, "%s\n", __func__);
 
-	res = regulator_enable(twl->usb3v1);
-	if (res)
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB3V1_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_OFF ) {
+	    res = regulator_enable(twl->usb3v1);
+	    if (res)
 		dev_err(twl->dev, "Failed to enable usb3v1\n");
+	}
 
-	res = regulator_enable(twl->usb1v8);
-	if (res)
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB1V8_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_OFF ) {
+	    res = regulator_enable(twl->usb1v8);
+	    if (res)
 		dev_err(twl->dev, "Failed to enable usb1v8\n");
+        }
 
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB1V5_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_OFF ) {
+	    res = regulator_enable(twl->usb1v5);
+	    if (res)
+	        dev_err(twl->dev, "Failed to enable usb1v5\n");
+	}
+	
 	/*
 	 * Disabling usb3v1 regulator (= writing 0 to VUSB3V1_DEV_GRP
 	 * in twl4030) resets the VUSB_DEDICATED2 register. This reset
@@ -401,9 +429,6 @@ static int twl4030_usb_run(struct twl4030_usb *twl)
 	 */
 	twl_i2c_write_u8(TWL_MODULE_PM_RECEIVER, 0, VUSB_DEDICATED2);
 
-	res = regulator_enable(twl->usb1v5);
-	if (res)
-		dev_err(twl->dev, "Failed to enable usb1v5\n");
 
 	__twl4030_phy_power(twl, 1);
 	twl4030_usb_write(twl, PHY_CLK_CTRL,
