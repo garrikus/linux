@@ -143,27 +143,23 @@ static inline bool cable_present(enum musb_vbus_id_status stat)
 }
 
 struct twl4030_usb {
-	struct usb_phy		phy;
-	struct device		*dev;
+	struct usb_phy		 phy;
+	struct device		 *dev;
 
 	/* TWL4030 internal USB regulator supplies */
-	struct regulator	*usb1v5;
-	struct regulator	*usb1v8;
-	struct regulator	*usb3v1;
+	struct regulator	 *usb1v5;
+	struct regulator	 *usb1v8;
+	struct regulator	 *usb3v1;
 
 	/* for vbus reporting with irqs disabled */
-	struct mutex		lock;
+	struct mutex		 lock;
 
 	/* pin configuration */
-	enum twl4030_usb_mode	usb_mode;
+	enum twl4030_usb_mode	 usb_mode;
 
-	int			irq;
+	int			 irq;
 	enum musb_vbus_id_status linkstat;
-	atomic_t		connected;
-	bool			vbus_supplied;
-	bool			musb_mailbox_pending;
-
-	struct delayed_work	id_workaround_work;
+	bool			 vbus_supplied;
 };
 
 /* internal define on top of container_of */
@@ -266,40 +262,13 @@ static bool twl4030_is_driving_vbus(struct twl4030_usb *twl)
 	return (ret & (ULPI_OTG_DRVVBUS | ULPI_OTG_CHRGVBUS)) ? true : false;
 }
 
-static enum usb_phy_events phy_event_from_id_status(enum musb_vbus_id_status linkstat)
-{
-	enum usb_phy_events trans_table[] = {
-		[MUSB_UNKNOWN] = USB_EVENT_NONE,
-		[MUSB_ID_GROUND] = USB_EVENT_ID,
-		[MUSB_ID_FLOAT] = USB_EVENT_NONE,
-		[MUSB_VBUS_VALID] = USB_EVENT_VBUS,
-		[MUSB_VBUS_OFF] = USB_EVENT_NONE,
-	};
-
-	if (sizeof(trans_table)/sizeof(trans_table[0]) <= linkstat)
-		BUG();
-
-	return trans_table[linkstat];
-};
-
 static enum musb_vbus_id_status
 	twl4030_usb_linkstat(struct twl4030_usb *twl)
 {
 	int	status;
-	enum musb_vbus_id_status linkstat = MUSB_UNKNOWN;
 
 	twl->vbus_supplied = false;
 
-	/*
-	 * For ID/VBUS sensing, see manual section 15.4.8 ...
-	 * except when using only battery backup power, two
-	 * comparators produce VBUS_PRES and ID_PRES signals,
-	 * which don't match docs elsewhere.  But ... BIT(7)
-	 * and BIT(2) of STS_HW_CONDITIONS, respectively, do
-	 * seem to match up.  If either is true the USB_PRES
-	 * signal is active, the OTG module is activated, and
-	 * its interrupt may be raised (may wake the system).
-	 */
 	status = twl4030_readb(twl, TWL_MODULE_PM_MASTER, STS_HW_CONDITIONS);
 	if (status < 0)
 		dev_err(twl->dev, "USB link status err %d\n", status);
@@ -312,27 +281,24 @@ static enum musb_vbus_id_status
 		}
 
 		if (status & BIT(2))
-			linkstat = MUSB_ID_GROUND;
+			twl->linkstat = MUSB_ID_GROUND;
 		else if (status & BIT(7))
-			linkstat = MUSB_VBUS_VALID;
+			twl->linkstat = MUSB_VBUS_VALID;
 		else
-			linkstat = MUSB_VBUS_OFF;
+			twl->linkstat = MUSB_VBUS_OFF;
 	} else {
 		if (twl->linkstat != MUSB_UNKNOWN)
-			linkstat = MUSB_VBUS_OFF;
+			twl->linkstat = MUSB_VBUS_OFF;
 	}
+	
 
-	kobject_uevent(&twl->dev->kobj, linkstat == MUSB_VBUS_VALID
-					? KOBJ_ONLINE : KOBJ_OFFLINE);
+	kobject_uevent(&twl->dev->kobj, twl->linkstat == MUSB_VBUS_VALID
+		       ? KOBJ_ONLINE : KOBJ_OFFLINE);   /// ????
 
 	dev_dbg(twl->dev, "HW_CONDITIONS 0x%02x/%d; link %d\n",
-			status, status, linkstat);
-
-	/* REVISIT this assumes host and peripheral controllers
-	 * are registered, and that both are active...
-	 */
-
-	return linkstat;
+			status, status, twl->linkstat);
+	
+	return twl->linkstat;
 }
 
 static void twl4030_usb_set_mode(struct twl4030_usb *twl, int mode)
@@ -400,62 +366,60 @@ static void __twl4030_phy_power(struct twl4030_usb *twl, int on)
 	WARN_ON(twl4030_usb_write_verify(twl, PHY_PWR_CTRL, pwr) < 0);
 }
 
-static int __maybe_unused twl4030_usb_suspend(struct device *dev)
+#define USB_STATE_OFF    0x00
+#define USB_STATE_ACTIVE 0x0E
+#define USB_GET_STATE(state) (state & 0xF0)
+
+static int twl4030_usb_stop(struct twl4030_usb *twl)
 {
-	struct twl4030_usb *twl = dev_get_drvdata(dev);
-
-	/*
-	 * we need enabled runtime on resume,
-	 * so turn irq off here, so we do not get it early
-	 * note: wakeup on usb plug works independently of this
-	 */
-	dev_dbg(twl->dev, "%s\n", __func__);
-	disable_irq(twl->irq);
-
-	return 0;
-}
-
-static int __maybe_unused twl4030_usb_resume(struct device *dev)
-{
-	struct twl4030_usb *twl = dev_get_drvdata(dev);
-
-	dev_dbg(twl->dev, "%s\n", __func__);
-	enable_irq(twl->irq);
-	/* check whether cable status changed */
-	twl4030_usb_irq(0, twl);
-
-	return 0;
-}
-
-static int __maybe_unused twl4030_usb_runtime_suspend(struct device *dev)
-{
-	struct twl4030_usb *twl = dev_get_drvdata(dev);
-
+        uint8_t state = 0;
 	dev_dbg(twl->dev, "%s\n", __func__);
 
 	__twl4030_phy_power(twl, 0);
-	regulator_disable(twl->usb1v5);
-	regulator_disable(twl->usb1v8);
-	regulator_disable(twl->usb3v1);
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB1V5_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_ACTIVE )
+	    regulator_disable(twl->usb1v5);
+
+	
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB1V8_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_ACTIVE )
+	    regulator_disable(twl->usb1v8);
+
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB3V1_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_ACTIVE )
+	    regulator_disable(twl->usb3v1);
 
 	return 0;
 }
 
-static int __maybe_unused twl4030_usb_runtime_resume(struct device *dev)
+static int twl4030_usb_run(struct twl4030_usb *twl)
 {
-	struct twl4030_usb *twl = dev_get_drvdata(dev);
+        uint8_t state = 0;
 	int res;
 
 	dev_dbg(twl->dev, "%s\n", __func__);
 
-	res = regulator_enable(twl->usb3v1);
-	if (res)
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB3V1_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_OFF ) {
+	    res = regulator_enable(twl->usb3v1);
+	    if (res)
 		dev_err(twl->dev, "Failed to enable usb3v1\n");
+	}
 
-	res = regulator_enable(twl->usb1v8);
-	if (res)
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB1V8_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_OFF ) {
+	    res = regulator_enable(twl->usb1v8);
+	    if (res)
 		dev_err(twl->dev, "Failed to enable usb1v8\n");
+        }
 
+	twl_i2c_read_u8(TWL_MODULE_PM_RECEIVER, &state, VUSB1V5_DEV_GRP);
+	if( USB_GET_STATE(state) == USB_STATE_OFF ) {
+	    res = regulator_enable(twl->usb1v5);
+	    if (res)
+	        dev_err(twl->dev, "Failed to enable usb1v5\n");
+	}
+	
 	/*
 	 * Disabling usb3v1 regulator (= writing 0 to VUSB3V1_DEV_GRP
 	 * in twl4030) resets the VUSB_DEDICATED2 register. This reset
@@ -465,9 +429,6 @@ static int __maybe_unused twl4030_usb_runtime_resume(struct device *dev)
 	 */
 	twl_i2c_write_u8(TWL_MODULE_PM_RECEIVER, 0, VUSB_DEDICATED2);
 
-	res = regulator_enable(twl->usb1v5);
-	if (res)
-		dev_err(twl->dev, "Failed to enable usb1v5\n");
 
 	__twl4030_phy_power(twl, 1);
 	twl4030_usb_write(twl, PHY_CLK_CTRL,
@@ -503,10 +464,6 @@ static int twl4030_phy_power_on(struct phy *phy)
 	struct twl4030_usb *twl = phy_get_drvdata(phy);
 
 	dev_dbg(twl->dev, "%s\n", __func__);
-	pm_runtime_get_sync(twl->dev);
-	schedule_delayed_work(&twl->id_workaround_work, HZ);
-	pm_runtime_mark_last_busy(twl->dev);
-	pm_runtime_put_autosuspend(twl->dev);
 
 	return 0;
 }
@@ -579,41 +536,18 @@ static irqreturn_t twl4030_usb_irq(int irq, void *_twl)
 {
 	struct twl4030_usb *twl = _twl;
 	enum musb_vbus_id_status status;
-	int err;
-
-	status = twl4030_usb_linkstat(twl);
 
 	mutex_lock(&twl->lock);
-	twl->linkstat = status;
+	status = twl4030_usb_linkstat(twl);
 	mutex_unlock(&twl->lock);
 
-	if (cable_present(status)) {
-		if (atomic_add_unless(&twl->connected, 1, 1)) {
-			dev_dbg(twl->dev, "%s: cable connected %i\n",
-				__func__, status);
-			pm_runtime_get_sync(twl->dev);
-			twl->musb_mailbox_pending = true;
-		}
+	if ( cable_present(status) ) {
+	  twl4030_usb_run(twl);
 	} else {
-		if (atomic_add_unless(&twl->connected, -1, 0)) {
-			dev_dbg(twl->dev, "%s: cable disconnected %i\n",
-				__func__, status);
-			pm_runtime_mark_last_busy(twl->dev);
-			pm_runtime_put_autosuspend(twl->dev);
-			twl->musb_mailbox_pending = true;
-		}
+	  twl4030_usb_stop(twl);
 	}
-	if (twl->musb_mailbox_pending) {
-		err = musb_mailbox(status);
-		if (!err)
-			twl->musb_mailbox_pending = false;
-	}
-
-	/* don't schedule during sleep - irq works right then */
-	if (status == MUSB_ID_GROUND && pm_runtime_active(twl->dev)) {
-		cancel_delayed_work(&twl->id_workaround_work);
-		schedule_delayed_work(&twl->id_workaround_work, HZ);
-	}
+	
+	 musb_mailbox(status);
 
 	if (irq)
 		sysfs_notify(&twl->dev->kobj, NULL, "vbus");
@@ -621,23 +555,13 @@ static irqreturn_t twl4030_usb_irq(int irq, void *_twl)
 	return IRQ_HANDLED;
 }
 
-static void twl4030_id_workaround_work(struct work_struct *work)
-{
-	struct twl4030_usb *twl = container_of(work, struct twl4030_usb,
-		id_workaround_work.work);
-
-	twl4030_usb_irq(0, twl);
-}
-
 static int twl4030_phy_init(struct phy *phy)
 {
 	struct twl4030_usb *twl = phy_get_drvdata(phy);
 
-	pm_runtime_get_sync(twl->dev);
+	mutex_lock(&twl->lock);
 	twl->linkstat = MUSB_UNKNOWN;
-	schedule_delayed_work(&twl->id_workaround_work, HZ);
-	pm_runtime_mark_last_busy(twl->dev);
-	pm_runtime_put_autosuspend(twl->dev);
+	mutex_unlock(&twl->lock);
 
 	return 0;
 }
@@ -674,12 +598,6 @@ static const struct phy_ops ops = {
 	.owner		= THIS_MODULE,
 };
 
-static const struct dev_pm_ops twl4030_usb_pm_ops = {
-	SET_RUNTIME_PM_OPS(twl4030_usb_runtime_suspend,
-			   twl4030_usb_runtime_resume, NULL)
-	SET_SYSTEM_SLEEP_PM_OPS(twl4030_usb_suspend, twl4030_usb_resume)
-};
-
 static int twl4030_usb_probe(struct platform_device *pdev)
 {
 	struct twl4030_usb_data *pdata = dev_get_platdata(&pdev->dev);
@@ -712,7 +630,6 @@ static int twl4030_usb_probe(struct platform_device *pdev)
 	twl->irq		= platform_get_irq(pdev, 0);
 	twl->vbus_supplied	= false;
 	twl->linkstat		= MUSB_UNKNOWN;
-	twl->musb_mailbox_pending = false;
 
 	twl->phy.dev		= twl->dev;
 	twl->phy.label		= "twl4030";
@@ -739,8 +656,6 @@ static int twl4030_usb_probe(struct platform_device *pdev)
 	/* init mutex for workqueue */
 	mutex_init(&twl->lock);
 
-	INIT_DELAYED_WORK(&twl->id_workaround_work, twl4030_id_workaround_work);
-
 	err = twl4030_usb_ldo_init(twl);
 	if (err) {
 		dev_err(&pdev->dev, "ldo init failed\n");
@@ -752,12 +667,6 @@ static int twl4030_usb_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_vbus))
 		dev_warn(&pdev->dev, "could not create sysfs file\n");
 
-	ATOMIC_INIT_NOTIFIER_HEAD(&twl->phy.notifier);
-
-	pm_runtime_use_autosuspend(&pdev->dev);
-	pm_runtime_set_autosuspend_delay(&pdev->dev, 2000);
-	pm_runtime_enable(&pdev->dev);
-	pm_runtime_get_sync(&pdev->dev);
 
 	/* Our job is to use irqs and status from the power module
 	 * to keep the transceiver disabled when nothing's connected.
@@ -781,9 +690,6 @@ static int twl4030_usb_probe(struct platform_device *pdev)
 	if (err)
 		return err;
 
-	pm_runtime_mark_last_busy(&pdev->dev);
-	pm_runtime_put_autosuspend(twl->dev);
-
 	dev_info(&pdev->dev, "Initialized TWL4030 USB module\n");
 	return 0;
 }
@@ -794,20 +700,10 @@ static int twl4030_usb_remove(struct platform_device *pdev)
 	int val;
 
 	usb_remove_phy(&twl->phy);
-	pm_runtime_get_sync(twl->dev);
-	cancel_delayed_work(&twl->id_workaround_work);
 	device_remove_file(twl->dev, &dev_attr_vbus);
 
 	/* set transceiver mode to power on defaults */
 	twl4030_usb_set_mode(twl, -1);
-
-	/* idle ulpi before powering off */
-	if (cable_present(twl->linkstat))
-		pm_runtime_put_noidle(twl->dev);
-	pm_runtime_mark_last_busy(twl->dev);
-	pm_runtime_dont_use_autosuspend(&pdev->dev);
-	pm_runtime_put_sync(twl->dev);
-	pm_runtime_disable(twl->dev);
 
 	/* autogate 60MHz ULPI clock,
 	 * clear dpll clock request for i2c access,
@@ -839,7 +735,6 @@ static struct platform_driver twl4030_usb_driver = {
 	.remove		= twl4030_usb_remove,
 	.driver		= {
 		.name	= "twl4030_usb",
-		.pm	= &twl4030_usb_pm_ops,
 		.of_match_table = of_match_ptr(twl4030_usb_id_table),
 	},
 };
